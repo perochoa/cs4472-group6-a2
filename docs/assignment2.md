@@ -6,7 +6,7 @@ CS4472B, group 6. Target: `bank.utils.FeesCalculator`.
 |---|---|---|---|
 | Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | TODO |
 | Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | TODO |
-| Transfer | Basis path testing | #5 | TODO |
+ | Transfer | Basis path testing | #5 | TODO |
 | Bonus | Any of the three, outside `FeesCalculator` | #6 | TODO |
 
 > **How to use this file.** Fill in only the sections for your issue and replace their `TODO`
@@ -140,13 +140,116 @@ TODO (#4):
 
 ### 1.3 Transfer: basis path testing (#5)
 
-TODO (#5):
-- **CFG** in Mermaid, nodes numbered by source line.
-- **Cyclomatic complexity** computed three ways (E − N + 2, predicates + 1, regions), with a check
-  that they agree.
-- **Baseline path** and why it was chosen.
-- **Basis set:** each path as a node sequence, derived by flipping one decision at a time.
-- **Assumptions** specific to transfer.
+**Target:** `FeesCalculator#calculateTransferFee` (lines 75–145).
+
+#### Control-flow graph
+
+Nodes are numbered by source line. Decision nodes are the `if` lines; each leaf node is one
+`feePercentage = ...` assignment. `n77` is the method entry (the declaration of `feePercentage`), `n142` is
+`double fee = amount * feePercentage;` and `n144` is `return fee;`.
+
+```mermaid
+flowchart TD
+    n77([n77 entry]) --> n79{n79 student}
+    n79 -- T --> n80{n80 amount < 100}
+    n79 -- F --> n110{n110 amount < 100}
+
+    n80 -- T --> n81{n81 from < 1000}
+    n80 -- F --> n95{n95 from < 1000}
+    n81 -- T --> n82{n82 to < 1000}
+    n81 -- F --> n88{n88 to < 1000}
+    n95 -- T --> n96{n96 to < 1000}
+    n95 -- F --> n102{n102 to < 1000}
+    n82 -- T --> n83[n83 0.01]
+    n82 -- F --> n85[n85 0.005]
+    n88 -- T --> n89[n89 0.05]
+    n88 -- F --> n91[n91 0.025]
+    n96 -- T --> n97[n97 0.005]
+    n96 -- F --> n99[n99 0.0025]
+    n102 -- T --> n103[n103 0.025]
+    n102 -- F --> n105[n105 0.0125]
+
+    n110 -- T --> n111{n111 from < 1000}
+    n110 -- F --> n125{n125 from < 1000}
+    n111 -- T --> n112{n112 to < 1000}
+    n111 -- F --> n118{n118 to < 1000}
+    n125 -- T --> n126{n126 to < 1000}
+    n125 -- F --> n132{n132 to < 1000}
+    n112 -- T --> n113[n113 0.02]
+    n112 -- F --> n115[n115 0.01]
+    n118 -- T --> n119[n119 0.1]
+    n118 -- F --> n121[n121 0.05]
+    n126 -- T --> n127[n127 0.01]
+    n126 -- F --> n129[n129 0.005]
+    n132 -- T --> n133[n133 0.05]
+    n132 -- F --> n135[n135 0.055]
+
+    n83 & n85 & n89 & n91 & n97 & n99 & n103 & n105 --> n142
+    n113 & n115 & n119 & n121 & n127 & n129 & n133 & n135 --> n142
+    n142[n142 fee = amount * feePercentage] --> n144([n144 return fee])
+```
+
+#### Cyclomatic complexity
+
+| Method | Working | V(G) |
+|---|---|---|
+| E − N + 2 | N = 34 (1 entry + 15 decisions + 16 assignments + n142 + n144). E = 48 (1 + 15×2 + 16 + 1). 48 − 34 + 2 | **16** |
+| Predicates + 1 | 15 simple predicates: n79, n80, n81, n82, n88, n95, n96, n102, n110, n111, n112, n118, n125, n126, n132. 15 + 1 | **16** |
+| Regions | Each of the 15 binary decisions closes one bounded region, plus the outer region. 15 + 1 | **16** |
+
+All three agree: **V(G) = 16**, so the basis set has 16 linearly independent paths and we need 16 tests.
+
+#### Baseline path and basis set
+
+**Baseline (P1):** take the TRUE branch at every decision: student, amount < $100, from < $1,000,
+to < $1,000. We chose it because it is the first branch in source order, and it is a normal, valid
+transfer (McCabe's method says to start from a typical path).
+
+The other 15 paths come from flipping one decision at a time, as McCabe's method does. Each time we
+reach a decision that hasn't been flipped yet, we flip it and take the TRUE branch at every later
+decision. Each new path adds exactly one edge that no earlier path used.
+
+| Path | Flipped decision (from) | Node sequence |
+|---|---|---|
+| P1 | baseline | n77 → n79T → n80T → n81T → n82T → n83 → n142 → n144 |
+| P2 | n82 (P1) | n77 → n79T → n80T → n81T → n82F → n85 → n142 → n144 |
+| P3 | n81 (P1) | n77 → n79T → n80T → n81F → n88T → n89 → n142 → n144 |
+| P4 | n88 (P3) | n77 → n79T → n80T → n81F → n88F → n91 → n142 → n144 |
+| P5 | n80 (P1) | n77 → n79T → n80F → n95T → n96T → n97 → n142 → n144 |
+| P6 | n96 (P5) | n77 → n79T → n80F → n95T → n96F → n99 → n142 → n144 |
+| P7 | n95 (P5) | n77 → n79T → n80F → n95F → n102T → n103 → n142 → n144 |
+| P8 | n102 (P7) | n77 → n79T → n80F → n95F → n102F → n105 → n142 → n144 |
+| P9 | n79 (P1) | n77 → n79F → n110T → n111T → n112T → n113 → n142 → n144 |
+| P10 | n112 (P9) | n77 → n79F → n110T → n111T → n112F → n115 → n142 → n144 |
+| P11 | n111 (P9) | n77 → n79F → n110T → n111F → n118T → n119 → n142 → n144 |
+| P12 | n118 (P11) | n77 → n79F → n110T → n111F → n118F → n121 → n142 → n144 |
+| P13 | n110 (P9) | n77 → n79F → n110F → n125T → n126T → n127 → n142 → n144 |
+| P14 | n126 (P13) | n77 → n79F → n110F → n125T → n126F → n129 → n142 → n144 |
+| P15 | n125 (P13) | n77 → n79F → n110F → n125F → n132T → n133 → n142 → n144 |
+| P16 | n132 (P15) | n77 → n79F → n110F → n125F → n132F → n135 → n142 → n144 |
+
+Every path is feasible: the four decisions test four independent inputs, so any TRUE/FALSE
+combination can be reached.
+
+#### Assumptions (transfer)
+
+1. **Node numbering.** Nodes are source lines. Closing braces of the `if`/`else` blocks are join
+   points with no statement, so they don't get nodes of their own. Each assignment node goes
+   straight to `n142`. Adding separate join nodes would add the same number of nodes and edges,
+   so V(G) would not change.
+2. **Predicates.** Every `if` tests one simple condition, so each one counts as one predicate.
+3. **Input values.** These are representative values, not boundary values, because basis path
+   testing only has to drive each path: `amount` is 50 (< $100) or 200 (≥ $100). Balances are 500
+   (< $1,000) or 2,000 (≥ $1,000).
+4. **Oracle.** Expected fee = `amount × percentage`, with the percentage taken from the README A2
+   "Transfer" clause for that path.
+5. **Tolerance.** `DELTA = 1e-6` (shared assumption 1).
+
+#### Coverage (from the JaCoCo comment on PR #TODO)
+
+TODO: paste `calculateTransferFee` line and branch coverage from the JaCoCo comment. All 16 paths
+run every statement and both outcomes of all 15 decisions, so expect 100% line and branch
+coverage for this method.
 
 ### 1.4 Bonus: faults outside `FeesCalculator` (#6)
 
