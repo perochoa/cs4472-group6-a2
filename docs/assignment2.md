@@ -245,11 +245,19 @@ combination can be reached.
    "Transfer" clause for that path.
 5. **Tolerance.** `DELTA = 1e-6` (shared assumption 1).
 
-#### Coverage (from the JaCoCo comment on PR #TODO)
+#### Coverage (from the JaCoCo report on PR #9)
 
-TODO: paste `calculateTransferFee` line and branch coverage from the JaCoCo comment. All 16 paths
-run every statement and both outcomes of all 15 decisions, so expect 100% line and branch
-coverage for this method.
+From the `jacoco-report` artifact of the PR #9 CI run, `FeesCalculator` page:
+
+| Method | Instruction coverage | Branch coverage | Lines covered | Cyclomatic complexity |
+|---|---|---|---|---|
+| `calculateTransferFee` | 100% | 100% | 33 / 33 | 16 |
+
+The 16 basis paths run every statement and both outcomes of all 15 decisions. JaCoCo's own
+complexity count (16) matches the V(G) computed above. At class level, `FeesCalculator` is at 64%
+instructions and 61% branches on this run, because the withdrawal and deposit tests are not merged
+yet. The coverage comment on the PR shows only the overall project figure (7.2%), because this PR
+doesn't change any main source file.
 
 ### 1.4 Bonus: faults outside `FeesCalculator` (#6)
 
@@ -314,7 +322,22 @@ Must match the JUnit report on the graded PR's CI run.
 
 | ID | Test class | Result (pass/fail) |
 |---|---|---|
-| | | |
+| TR-01 | TransferFeeTest | fail |
+| TR-02 | TransferFeeTest | fail |
+| TR-03 | TransferFeeTest | fail |
+| TR-04 | TransferFeeTest | fail |
+| TR-05 | TransferFeeTest | fail |
+| TR-06 | TransferFeeTest | fail |
+| TR-07 | TransferFeeTest | fail |
+| TR-08 | TransferFeeTest | fail |
+| TR-09 | TransferFeeTest | fail |
+| TR-10 | TransferFeeTest | fail |
+| TR-11 | TransferFeeTest | fail |
+| TR-12 | TransferFeeTest | fail |
+| TR-13 | TransferFeeTest | fail |
+| TR-14 | TransferFeeTest | fail |
+| TR-15 | TransferFeeTest | fail |
+| TR-16 | TransferFeeTest | fail |
 
 ## Coverage
 
@@ -333,7 +356,8 @@ as the PR template.
 
 | Failing test(s) | Suspected fault (file, method, line) | One-line justification |
 |---|---|---|
-| | | |
+| TR-01 – TR-15 | `FeesCalculator.java`, `calculateTransferFee`, lines 83, 85, 89, 91, 97, 99, 103, 105, 113, 115, 119, 121, 127, 129, 133 (`feePercentage = ...`) | Each test reaches exactly one assignment and every fee comes back 10× the spec (for example, TR-01 returns 0.5 instead of 0.05), so each `feePercentage` constant is off by one decimal place. |
+| TR-16 | `FeesCalculator.java`, `calculateTransferFee`, line 135 (`feePercentage = 0.055`) | P16 is the only path through line 135 and returns 11.0 instead of 0.5 (22×), which doesn't fit the 10× pattern, so line 135 has its own wrong constant (0.055 where the spec says 0.0025). |
 
 ## Failure log
 
@@ -341,4 +365,5 @@ Kept for Assignment 3. Add a row as soon as a failure is found, not at the end.
 
 | Failure ID | Exposing test(s) | Method | Time testing before found | Time diagnosing | Found by |
 |---|---|---|---|---|---|
-| F-01 | | | | | |
+| F-01 | TR-01 – TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-02 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
