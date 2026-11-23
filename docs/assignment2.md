@@ -207,7 +207,8 @@ transfer (McCabe's method says to start from a typical path).
 
 The other 15 paths come from flipping one decision at a time, as McCabe's method does. Each time we
 reach a decision that hasn't been flipped yet, we flip it and take the TRUE branch at every later
-decision. Each new path adds exactly one edge that no earlier path used.
+decision. decision. Each new path uses at least one edge that no earlier path used, so the 16 paths are
+linearly independent.
 
 | Path | Flipped decision (from) | Node sequence |
 |---|---|---|
