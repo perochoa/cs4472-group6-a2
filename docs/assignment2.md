@@ -200,8 +200,16 @@ on n12 true, so both weekend days in the specification are checked.
 fault was found in `calculateWithdrawalFee` and there are no withdrawal rows in the
 fault-localization table or the failure log.
 
-**JaCoCo (from this PR's coverage comment):** TODO (#3): quote line and branch coverage of
-`bank.utils.FeesCalculator` after CI runs on the PR.
+**JaCoCo (CI run on PR #10, `jacoco-report` artifact).** The PR comment shows only the project
+total (4.88%), so these numbers come from the `jacoco.xml` in the run's `jacoco-report` artifact:
+
+| Scope | Line coverage | Branch coverage |
+|---|---|---|
+| `calculateWithdrawalFee` | 11/11 (100%) | 10/10 (100%) |
+| `bank.utils.FeesCalculator` (whole class) | 12/62 (19.35%) | 10/54 (18.52%) |
+
+Every line and branch of `calculateWithdrawalFee` runs. The class totals are low only because
+the deposit and transfer methods have no tests yet in this PR.
 
 ### 1.2 Deposit: DU-paths for `interestPercentage` (#4)
 
@@ -279,12 +287,12 @@ Must match the JUnit report on the graded PR's CI run.
 
 | ID | Test class | Result (pass/fail) |
 |---|---|---|
-| WD-01 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
-| WD-02 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
-| WD-03 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
-| WD-04 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
-| WD-05 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
-| WD-06 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
+| WD-01 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-02 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-03 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-04 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-05 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-06 | `bank.utils.WithdrawalFeeTest` | pass |
 
 ## Coverage
 
