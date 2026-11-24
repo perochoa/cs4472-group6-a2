@@ -606,7 +606,11 @@ Only group tests that reach the same faulty line. Same columns as the PR templat
 | BN-02 | `CashValidator.java`, `validateWithdrawal`, line 24 | There's no check that `amount > 0`, and `0 % 50 == 0` takes the "valid" path B1, so $0 is accepted. |
 | BN-06, BN-07 | `FormatChecker.java`, `checkPinFormat`, line 33 | `pin.length == 4` checks for 4 characters instead of 5, so a 4-digit PIN is accepted and a 5-digit PIN is rejected. |
 | BN-10, BN-11 | `BankTransfer.java`, `perform`, lines 50–51 | The two `setBalance` calls are swapped: the from account gets `newToAmount` (599.5) and the to account gets `newFromAmount` (1,899.5). |
-| BN-13 | `BankTransfer.java`, `perform`, line 47 | `newToAmount = toBalance + amount - fees` takes the fee off the receiving account too, so it gets 599.5 instead of 600 and the fee is charged twice. |
+| BN-11, BN-13 | `BankTransfer.java`, `perform`, line 47 | `newToAmount = toBalance + amount - fees` takes the fee off the receiving account too, so it gets 599.5 instead of 600 and the fee is charged twice. |
+
+BN-11 is in both `BankTransfer` rows. It checks the balance written to the to account, which is
+wrong because of the swap (it gets 1,899.5) and would still be wrong with only the swap fixed (it
+would get 599.5, not 600). BN-10 is the test that isolates the swap, and BN-13 isolates line 47.
 
 ## Failure log
 
@@ -635,6 +639,6 @@ found, not at the end.
 | BF-02 | BN-02 | `CashValidator#validateWithdrawal` | 60 | 10 | Alexander Perocho |
 | BF-03 | BN-06, BN-07 | `FormatChecker#checkPinFormat` | 60 | 10 | Alexander Perocho |
 | BF-04 | BN-10, BN-11 | `BankTransfer#perform` | 120 | 20 | Alexander Perocho |
-| BF-05 | BN-13 | `BankTransfer#perform` | 120 | 15 | Alexander Perocho |
+| BF-05 | BN-11, BN-13 | `BankTransfer#perform` | 120 | 15 | Alexander Perocho |
 
 Bonus rows (`BF-xx`): times are rough, in minutes.
