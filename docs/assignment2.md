@@ -4,7 +4,7 @@ CS4472B, group 6. Target: `bank.utils.FeesCalculator`.
 
 | Operation | Technique | Issue | Owner |
 |---|---|---|---|
-| Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | TODO |
+| Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | Tony Wang (@twang849) |
 | Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | TODO |
 | Transfer | Basis path testing | #5 | TODO |
 | Bonus | Any of the three, outside `FeesCalculator` | #6 | TODO |
@@ -117,13 +117,91 @@ operation. Otherwise put it in your own section.
 
 ### 1.1 Withdrawal: slice on `FinalUse(fee)` (#3)
 
-TODO (#3):
-- **Slicing criterion:** `FinalUse(fee)` at line 30.
-- **The slice:** the statements by line number, each with why it is in the slice (data or control
-  dependence on `fee`). Say whether the `if` predicates are included and why.
-- **Process:** how the slice was computed.
-- **Assumptions** specific to withdrawal.
-- **How the test cases cover every statement in the slice.**
+**Slicing criterion:** `FinalUse(fee)`, the statement `return fee;` at line 30 (`n30`) of
+`calculateWithdrawalFee`. This is a static backward slice: it holds every statement that can
+change the value of `fee` when it is returned.
+
+**The slice:** `S(fee, n30) = { n6, n10, n12, n13, n15, n18, n19, n20, n21, n23, n28, n30 }`
+
+| Node | Statement | Why it is in the slice |
+|---|---|---|
+| n6 | method entry: parameters `amount`, `accountBalance`, `student`, `dayOfWeek` | Data: defines `amount` (used at n28) and the variables read by the predicates n10, n12, n18, n20 |
+| n10 | `if (student)` | Control: decides whether n12 or n18 runs |
+| n12 | `if ((dayOfWeek == Calendar.SATURDAY) \|\| (dayOfWeek == Calendar.SUNDAY))` | Control: decides whether n13 or n15 runs |
+| n13 | `feePercentage = 0.0;` | Data: definition of `feePercentage` that reaches n28 |
+| n15 | `feePercentage = 0.001;` | Data: definition of `feePercentage` that reaches n28 |
+| n18 | `if (accountBalance < 1000.00)` | Control: decides whether n19 or n20 runs |
+| n19 | `feePercentage = 0.002;` | Data: definition of `feePercentage` that reaches n28 |
+| n20 | `else if (accountBalance < 10000.00)` | Control: decides whether n21 or n23 runs |
+| n21 | `feePercentage = 0.001;` | Data: definition of `feePercentage` that reaches n28 |
+| n23 | `feePercentage = 0.0;` | Data: definition of `feePercentage` that reaches n28 |
+| n28 | `double fee = amount * feePercentage;` | Data: the only definition of `fee`, which n30 uses |
+| n30 | `return fee;` | The slicing criterion |
+
+**Are the `if` predicates in the slice? Yes.** The four predicates (n10, n12, n18, n20) do not
+assign `fee` or `feePercentage`, but they choose which of the five assignments to `feePercentage`
+runs. Each assignment is control dependent on its predicate, so the predicates are in the slice.
+
+**Not in the slice:** line 8 (`double feePercentage;`) declares the variable but gives it no value,
+so it cannot change `fee`. Every other line that is not listed is a comment, a blank line, a
+closing brace or an `else` keyword, not a statement. So every executable statement in the method
+except line 8 is in the slice.
+
+**Process.** We started at n30 and walked backwards, adding the reaching definitions of every
+variable used (data dependence) and the predicate that controls every statement (control
+dependence), until no new statement was added:
+
+| Step | Statement in the slice | Uses | Added | Reason |
+|---|---|---|---|---|
+| 1 | n30 `return fee` | `fee` | n28 | Only definition of `fee` (data) |
+| 2 | n28 `fee = amount * feePercentage` | `amount`, `feePercentage` | n6, n13, n15, n19, n21, n23 | Parameter `amount`; all five definitions of `feePercentage` reach n28 (data) |
+| 3 | n13, n15 | — | n12 | Weekend predicate controls them (control) |
+| 4 | n19 | — | n18 | `accountBalance < 1000` controls it (control) |
+| 5 | n21, n23 | — | n20 | `accountBalance < 10000` controls them (control) |
+| 6 | n12, n18, n20 | `dayOfWeek`, `accountBalance` | n10 | `if (student)` controls n12 and n18; n18 controls n20 (control). Variables come from n6 (data) |
+| 7 | n10 | `student` | — | n6 is already in the slice; nothing new, so stop |
+
+**Assumptions (withdrawal).**
+- The README says to ignore the `round` call; there is no `round` call in the method. Line 28
+  returns `amount * feePercentage` with no rounding (Shared assumption 2).
+- A balance of exactly $10,000 is a gap in the specification (Shared assumption 3). No test uses
+  it, and statement coverage of the slice does not need it.
+- `dayOfWeek` follows `java.util.Calendar`: 1 = Sunday, 2 = Monday, 7 = Saturday (Shared assumption 4).
+- Every test withdraws `amount = 200`, so each non-zero fee is exact and different
+  (0.1% → 0.2, 0.2% → 0.4). A wrong percentage gives a different result, well above `DELTA = 1e-6`.
+- Balances are chosen in the middle of each range (500, 5,000, 20,000) so that each test reaches
+  exactly one assignment, with no doubt about which range it is in.
+
+**How the test cases cover every statement in the slice.** Each run executes exactly one of the five
+`feePercentage` assignments, so at least five tests are needed. WD-01 to WD-05 run one each. Every
+test also runs n6, n10, n28 and n30, and together they run every predicate.
+
+| Node | WD-01 | WD-02 | WD-03 | WD-04 | WD-05 | WD-06 |
+|---|---|---|---|---|---|---|
+| n6 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| n10 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| n12 | ✓ | ✓ | | | | ✓ |
+| n13 | ✓ | | | | | ✓ |
+| n15 | | ✓ | | | | |
+| n18 | | | ✓ | ✓ | ✓ | |
+| n19 | | | ✓ | | | |
+| n20 | | | | ✓ | ✓ | |
+| n21 | | | | ✓ | | |
+| n23 | | | | | ✓ | |
+| n28 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| n30 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+All 12 slice statements are covered by WD-01 to WD-05 (100% statement coverage of the slice).
+WD-06 is an extra case: it runs the same statements as WD-01 but makes the Sunday side of the `||`
+on n12 true, so both weekend days in the specification are checked.
+
+**Results.** All six withdrawal tests pass (local run of `mvn -B test -Dtest=WithdrawalFeeTest`:
+6 run, 0 failures). The code matches the A2 withdrawal figures for every slice statement, so no
+fault was found in `calculateWithdrawalFee` and there are no withdrawal rows in the
+fault-localization table or the failure log.
+
+**JaCoCo (from this PR's coverage comment):** TODO (#3): quote line and branch coverage of
+`bank.utils.FeesCalculator` after CI runs on the PR.
 
 ### 1.2 Deposit: DU-paths for `interestPercentage` (#4)
 
@@ -168,7 +246,12 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 
 | ID | Covers | `amount` | `accountBalance` | `student` | `dayOfWeek` | Expected fee | Spec clause |
 |---|---|---|---|---|---|---|---|
-| WD-01 | | | | | | | |
+| WD-01 | n6, n10, n12, n13, n28, n30 | 200 | 500 | true | 7 (Sat) | 0.0 | Student → weekend → "there is no fee" |
+| WD-02 | n6, n10, n12, n15, n28, n30 | 200 | 500 | true | 2 (Mon) | 0.2 | Student → otherwise → "0.1% of the amount withdrawn" |
+| WD-03 | n6, n10, n18, n19, n28, n30 | 200 | 500 | false | 2 (Mon) | 0.4 | Not a student → balance less than $1,000 → "0.2% of the amount withdrawn" |
+| WD-04 | n6, n10, n18, n20, n21, n28, n30 | 200 | 5000 | false | 2 (Mon) | 0.2 | Not a student → $1,000 or more but less than $10,000 → "0.1% of the amount withdrawn" |
+| WD-05 | n6, n10, n18, n20, n23, n28, n30 | 200 | 20000 | false | 2 (Mon) | 0.0 | Not a student → balance more than $10,000 → "there is no fee" |
+| WD-06 | n6, n10, n12, n13, n28, n30 (extra: Sunday side of `\|\|` on n12) | 200 | 500 | true | 1 (Sun) | 0.0 | Student → weekend → "there is no fee" |
 
 ### 2.2 Deposit (#4)
 
@@ -196,7 +279,12 @@ Must match the JUnit report on the graded PR's CI run.
 
 | ID | Test class | Result (pass/fail) |
 |---|---|---|
-| | | |
+| WD-01 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
+| WD-02 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
+| WD-03 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
+| WD-04 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
+| WD-05 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
+| WD-06 | `bank.utils.WithdrawalFeeTest` | pass (TODO #3: confirm on CI) |
 
 ## Coverage
 
