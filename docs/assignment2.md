@@ -458,7 +458,8 @@ update fails. There's no spec for the messages, so it isn't counted.
 
 #### 1.4.5 Coverage
 
-JaCoCo from a local `mvn -B test` run on Java 11 (to be checked against this PR's CI run):
+JaCoCo from the CI run on PR #11 (`jacoco-report` artifact, since the PR comment shows only the
+project total). A local `mvn -B test` on Java 11 gives the same numbers:
 
 | Method | Line coverage | Branch coverage |
 |---|---|---|
