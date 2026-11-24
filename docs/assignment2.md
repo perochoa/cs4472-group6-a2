@@ -7,7 +7,7 @@ CS4472B, group 6. Target: `bank.utils.FeesCalculator`.
 | Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | TODO |
 | Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | TODO |
 | Transfer | Basis path testing | #5 | Sophia Tong |
-| Bonus | Any of the three, outside `FeesCalculator` | #6 | TODO |
+| Bonus | Any of the three, outside `FeesCalculator` | #6 | Alexander Perocho (@perochoa) |
 
 > **How to use this file.** Fill in only the sections for your issue and replace their `TODO`
 > markers. Don't change another operation's section or the shared conventions; raise changes to
@@ -298,12 +298,175 @@ rows run in `@CsvSource` order (`[1]` = TR-01, …, `[16]` = TR-16).
 
 ### 1.4 Bonus: faults outside `FeesCalculator` (#6)
 
-TODO (#6, or delete this section if #6 is dropped on Nov 30):
-- **Class and method** under test, and why it was picked.
-- **Technique** and analysis artifact (slice, DU-path table or CFG + basis paths).
-- **Oracle source:** the A2 fee figures or the A1 ATM session rules, stated for each test.
-- **Test doubles** used, if any (stub `FeesCalculator` so its faults don't show up here as new ones).
-- **Assumptions.**
+Three methods, picked because they're small, have a written spec to test against, and sit on the
+paths the A1 and A2 specs care about (withdrawal amount, PIN, transfer):
+
+| Method | Technique | Oracle | Test class |
+|---|---|---|---|
+| `atm.utils.CashValidator#validateWithdrawal` | Basis paths | A1 ATM session rules: amount payable in $20 and $50 bills | `atm.utils.CashValidatorTest` |
+| `atm.utils.FormatChecker#checkPinFormat` | Basis paths | A1 ATM session rules: a valid PIN is 5 digits | `atm.utils.FormatCheckerTest` |
+| `bank.transactions.BankTransfer#perform` | DU-paths for `fees`, `newFromAmount`, `newToAmount` | A2 transfer fee figures + bonus assumption 4 | `bank.transactions.BankTransferTest` |
+
+CFG nodes are numbered by source line in each class's own file on `dev`, same as the main
+sections. `x` is the method exit.
+
+#### 1.4.1 `CashValidator#validateWithdrawal` (lines 20–32)
+
+```mermaid
+flowchart TD
+    n20["n20-n23: result = true; newAmount = amount % 50"] --> n24{"n24: newAmount != 0"}
+    n24 -- F --> n31["n31: return result"]
+    n24 -- T --> n25["n25: newAmount = newAmount % 20"]
+    n25 --> n26{"n26: newAmount != 0"}
+    n26 -- F --> n31
+    n26 -- T --> n27["n27: result = false"]
+    n27 --> n31
+```
+
+**Cyclomatic complexity.** 6 nodes, 7 edges: E − N + 2 = 7 − 6 + 2 = 3. Predicates + 1 = 2 + 1 = 3.
+Regions = 3 (two enclosed, one outside). All three agree.
+
+**Basis set.** The baseline is B1, the shortest path (a multiple of $50). Each next path flips one
+decision.
+
+| Path | Nodes | Domain |
+|---|---|---|
+| B1 | n20 n24(F) n31 | `amount % 50 == 0` |
+| B2 | n20 n24(T) n25 n26(F) n31 | `amount % 50 != 0` and `(amount % 50) % 20 == 0` |
+| B3 | n20 n24(T) n25 n26(T) n27 n31 | `amount % 50 != 0` and `(amount % 50) % 20 != 0` |
+
+**Picking inputs.** One input per path is the minimum, but the spec cuts across two of the path
+domains. B1 holds $100 (valid) and $0 (no bills, not valid). B3 holds $30 (not valid) and $80
+(4 × $20, valid). The code returns the same thing for the whole domain, so we test one input
+from each part. That gives 5 cases for 3 paths.
+
+#### 1.4.2 `FormatChecker#checkPinFormat` (lines 32–42)
+
+The `||` on line 35 is split into two decisions, `n35a` (`pin[i] < '0'`) and `n35b`
+(`pin[i] >= '9'`), so each condition gets its own path.
+
+```mermaid
+flowchart TD
+    n32["n32: entry"] --> n33{"n33: pin.length == 4"}
+    n33 -- F --> n40["n40: throw"]
+    n33 -- T --> n34{"n34: i < 4"}
+    n34 -- F --> x["x: exit"]
+    n34 -- T --> n35a{"n35a: pin[i] < '0'"}
+    n35a -- T --> n36["n36: throw"]
+    n35a -- F --> n35b{"n35b: pin[i] >= '9'"}
+    n35b -- T --> n36
+    n35b -- "F, i++" --> n34
+    n36 --> x
+    n40 --> x
+```
+
+**Cyclomatic complexity.** 8 nodes, 11 edges: 11 − 8 + 2 = 5. Predicates + 1 = 4 + 1 = 5.
+Regions = 5. All three agree.
+
+**Basis set.** The baseline P1 is the normal path: length 4, every character passes, the loop
+runs and exits.
+
+| Path | Nodes | Flipped | Feasible? |
+|---|---|---|---|
+| P1 | n32 n33(T) n34(T) n35a(F) n35b(F) n34 … n34(F) x | baseline | Yes |
+| P2 | n32 n33(F) n40 x | n33 | Yes |
+| P3 | n32 n33(T) n34(F) x | n34 | No: `i = 0` so `i < 4` is true the first time |
+| P4 | n32 n33(T) n34(T) n35a(T) n36 x | n35a | Yes |
+| P5 | n32 n33(T) n34(T) n35a(F) n35b(T) n36 x | n35b | Yes |
+
+P3 has no test. The `n34(F)` edge it was meant to add is still run by P1 when the loop ends. For
+P4 and P5 we used the boundary character of each condition: `/` (just below `'0'`) and `9`
+(the value `>= '9'` starts at).
+
+#### 1.4.3 `BankTransfer#perform` (lines 19–65)
+
+**Why DU-paths.** The method has only one decision we care about (n48). What matters is which
+value ends up in which account, and that's data flow. We picked the three variables that carry
+the result: `fees` (n44), `newFromAmount` (n46) and `newToAmount` (n47).
+
+```mermaid
+flowchart TD
+    n44["n44: fees = calculateTransferFee(...)"] --> n45["n45: amountRequired = amount + fees"]
+    n45 --> n46["n46: newFromAmount = fromBalance - amountRequired"]
+    n46 --> n47["n47: newToAmount = toBalance + amount - fees"]
+    n47 --> n48{"n48: newFromAmount >= 0"}
+    n48 -- T --> n50["n50: setBalance(user, from, newToAmount)"]
+    n50 --> n51["n51: setBalance(user, to, newFromAmount)"]
+    n51 --> n56["n56-n58: accountsBalances = {newFromAmount, newToAmount}"]
+    n56 --> n59["n59: result = TransactionResult(true, fees, ...)"]
+    n48 -- F --> n61["n61: result = Insufficient funds"]
+    n59 --> n64["n64: return result"]
+    n61 --> n64
+```
+
+Lines 22–42 (reading the inputs and the card/user lookups) come before n44 and don't touch these
+three variables, so they're left out of the graph.
+
+**DU-path table.** Each variable is defined once and never redefined, so every DU-path is
+definition-clear.
+
+| DU-path | Variable | Def | Use | Path (nodes) | Definition-clear? | Test |
+|---|---|---|---|---|---|---|
+| F1 | `fees` | n44 | n45 (c-use) | n44 n45 | Yes | BN-12 |
+| F2 | `fees` | n44 | n47 (c-use) | n44 n45 n46 n47 | Yes | BN-13 |
+| F3 | `fees` | n44 | n59 (c-use) | n44 n45 n46 n47 n48 n50 n51 n56 n57 n58 n59 | Yes | BN-14 |
+| A1 | `newFromAmount` | n46 | (n48, n50) p-use, true | n46 n47 n48 n50 | Yes | BN-10 to BN-14 |
+| A2 | `newFromAmount` | n46 | (n48, n61) p-use, false | n46 n47 n48 n61 | Yes | BN-15 |
+| A3 | `newFromAmount` | n46 | n51 (c-use) | n46 n47 n48 n50 n51 | Yes | BN-11 |
+| A4 | `newFromAmount` | n46 | n57 (c-use) | n46 n47 n48 n50 n51 n56 n57 | Yes | BN-12 |
+| T1 | `newToAmount` | n47 | n50 (c-use) | n47 n48 n50 | Yes | BN-10 |
+| T2 | `newToAmount` | n47 | n58 (c-use) | n47 n48 n50 n51 n56 n57 n58 | Yes | BN-13 |
+
+**Process.** For each variable we listed its definition, then every statement that reads it, then
+the path between them. Each test runs its whole path but asserts only on the value at the use it
+was built for, so a failure points at one use. For the `setBalance` uses (n50, n51) we capture
+the balance written for each account with a Mockito `ArgumentCaptor`.
+
+**Test doubles.** `DBHandler` and `FeesCalculator` are Mockito mocks, stubbed with
+`doReturn(...).when(...)`. The stubbed fee is the A2 figure for the inputs, not whatever
+`FeesCalculator` returns, so its faults can't show up here as new ones.
+
+#### 1.4.4 Assumptions (bonus)
+
+1. **Oracles.** `CashValidator` and `FormatChecker` tests use the A1 ATM session rules (README of
+   our A1 repo, "ATM Session"). `BankTransfer` tests use the A2 transfer fee figures and
+   assumption 4.
+2. **$0 is not a valid withdrawal.** Nothing is dispensed, so it can't be "dispensed in $20 and $50
+   bills". This is the same reading as our A1 report (Session assumption 5, minimum $20).
+3. **`validateDeposit` isn't tested.** The A1 rule only covers withdrawals, so there's no oracle
+   for deposits.
+4. **Who pays the transfer fee.** The fee is charged to the account the money is coming from. That
+   account loses `amount + fee`, and the account the money is going to gains `amount`. The spec
+   only says the fee is a percentage "of the amount transferred", so this is our reading.
+5. **Transfer inputs.** One user owns both accounts (Chequing → Savings). The main case is
+   not a student, $100, from $2,000, to $500, so the A2 fee is 0.5% of $100 = $0.50 and every
+   expected balance is exact (1,899.5 and 600). The insufficient-funds case uses from $50, so the
+   A2 fee is 0.1% of $100 = $0.10.
+6. **Error paths left out.** Card not found, user not found and a failed balance update don't
+   reach any use of the three variables, so they aren't DU-paths and aren't tested.
+
+**Faults masked by another fault (no test can fail on them yet).**
+- `FormatChecker#checkPinFormat`, line 35: `pin[i] >= '9'` rejects the digit 9.
+- `FormatChecker#checkPinFormat`, line 34: the loop is hard-coded to 4 characters.
+
+Every PIN that reaches line 34 has 4 characters (n33), and the spec says a 4-character PIN is
+invalid anyway, so throwing on it is the right answer. BN-09 runs the `'9'` boundary and passes
+for that reason. Both faults should show up once the length check on line 33 is fixed.
+
+**Noticed, not tested.** `BankTransfer#perform` line 53 returns "User not found." when the balance
+update fails. There's no spec for the messages, so it isn't counted.
+
+#### 1.4.5 Coverage
+
+JaCoCo from a local `mvn -B test` run on Java 11 (to be checked against this PR's CI run):
+
+| Method | Line coverage | Branch coverage |
+|---|---|---|
+| `CashValidator#validateWithdrawal` | 7/7 (100%) | 4/4 (100%) |
+| `FormatChecker#checkPinFormat` | 6/6 (100%) | 8/8 (100%) |
+| `BankTransfer#perform` | 25/31 (80.6%) | 2/2 (100%) |
+
+The 6 missed lines in `BankTransfer#perform` are the three error returns from assumption 6.
 
 ---
 
@@ -349,7 +512,21 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 
 | ID | Class#method | Covers | Inputs | Expected | Oracle source |
 |---|---|---|---|---|---|
-| BN-01 | | | | | |
+| BN-01 | `CashValidator#validateWithdrawal` | B1 | `amount = 100` | `true` | A1: payable in $20/$50 bills (2 × $50) |
+| BN-02 | `CashValidator#validateWithdrawal` | B1 | `amount = 0` | `false` | A1: payable in $20/$50 bills; bonus assumption 2 |
+| BN-03 | `CashValidator#validateWithdrawal` | B2 | `amount = 70` | `true` | A1: payable in $20/$50 bills ($50 + $20) |
+| BN-04 | `CashValidator#validateWithdrawal` | B3 | `amount = 30` | `false` | A1: payable in $20/$50 bills (no combination) |
+| BN-05 | `CashValidator#validateWithdrawal` | B3 | `amount = 80` | `true` | A1: payable in $20/$50 bills (4 × $20) |
+| BN-06 | `FormatChecker#checkPinFormat` | P1 | `pin = 1234` | `InvalidPinFormatException` | A1: a valid PIN is 5 digits |
+| BN-07 | `FormatChecker#checkPinFormat` | P2 | `pin = 12345` | no exception | A1: a valid PIN is 5 digits |
+| BN-08 | `FormatChecker#checkPinFormat` | P4 | `pin = /123` | `InvalidPinFormatException` | A1: a valid PIN is 5 digits |
+| BN-09 | `FormatChecker#checkPinFormat` | P5 | `pin = 9123` | `InvalidPinFormatException` | A1: a valid PIN is 5 digits |
+| BN-10 | `BankTransfer#perform` | T1, A1 | $100, from $2,000, to $500, not a student, fee 0.5 | from account set to 1,899.5 | A2 transfer: not a student, ≥ $100, from ≥ $1,000, to < $1,000 → 0.5%; assumption 4 |
+| BN-11 | `BankTransfer#perform` | A3 | same as BN-10 | to account set to 600 | same as BN-10 |
+| BN-12 | `BankTransfer#perform` | A4, F1 | same as BN-10 | successful, returned from balance 1,899.5 | same as BN-10 |
+| BN-13 | `BankTransfer#perform` | T2, F2 | same as BN-10 | successful, returned to balance 600 | same as BN-10 |
+| BN-14 | `BankTransfer#perform` | F3 | same as BN-10 | returned fee 0.5 | same as BN-10 |
+| BN-15 | `BankTransfer#perform` | A2 | $100, from $50, to $500, not a student, fee 0.1 | not successful, no balance written | A2 transfer: not a student, ≥ $100, from < $1,000, to < $1,000 → 0.1%; assumption 4 |
 
 ---
 
@@ -375,6 +552,21 @@ Must match the JUnit report on the graded PR's CI run.
 | TR-14 | TransferFeeTest | fail |
 | TR-15 | TransferFeeTest | fail |
 | TR-16 | TransferFeeTest | fail |
+| BN-01 | `atm.utils.CashValidatorTest` | Pass |
+| BN-02 | `atm.utils.CashValidatorTest` | Fail |
+| BN-03 | `atm.utils.CashValidatorTest` | Pass |
+| BN-04 | `atm.utils.CashValidatorTest` | Pass |
+| BN-05 | `atm.utils.CashValidatorTest` | Fail |
+| BN-06 | `atm.utils.FormatCheckerTest` | Fail |
+| BN-07 | `atm.utils.FormatCheckerTest` | Fail |
+| BN-08 | `atm.utils.FormatCheckerTest` | Pass |
+| BN-09 | `atm.utils.FormatCheckerTest` | Pass |
+| BN-10 | `bank.transactions.BankTransferTest` | Fail |
+| BN-11 | `bank.transactions.BankTransferTest` | Fail |
+| BN-12 | `bank.transactions.BankTransferTest` | Pass |
+| BN-13 | `bank.transactions.BankTransferTest` | Fail |
+| BN-14 | `bank.transactions.BankTransferTest` | Pass |
+| BN-15 | `bank.transactions.BankTransferTest` | Pass |
 
 ## Coverage
 
@@ -409,6 +601,11 @@ Only group tests that reach the same faulty line. Same columns as the PR templat
 | TR-14 | `FeesCalculator.java`, `calculateTransferFee`, line 129 (`feePercentage = 0.005`) | P14 is the only path through line 129 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
 | TR-15 | `FeesCalculator.java`, `calculateTransferFee`, line 133 (`feePercentage = 0.05`) | P15 is the only path through line 133 and returns 10.0 instead of 1.0 (10×), so the constant is 0.05 where the spec says 0.005. |
 | TR-16 | `FeesCalculator.java`, `calculateTransferFee`, line 135 (`feePercentage = 0.055`) | P16 is the only path through line 135 and returns 11.0 instead of 0.5 (22×), which doesn't fit the 10× pattern, so line 135 has its own wrong constant (0.055 where the spec says 0.0025). |
+| BN-05 | `CashValidator.java`, `validateWithdrawal`, lines 23–26 | It takes as many $50 bills as it can and then tries only $20 bills on the rest, so $80 (rest $30) is rejected even though 4 × $20 pays it. |
+| BN-02 | `CashValidator.java`, `validateWithdrawal`, line 24 | There's no check that `amount > 0`, and `0 % 50 == 0` takes the "valid" path B1, so $0 is accepted. |
+| BN-06, BN-07 | `FormatChecker.java`, `checkPinFormat`, line 33 | `pin.length == 4` checks for 4 characters instead of 5, so a 4-digit PIN is accepted and a 5-digit PIN is rejected. |
+| BN-10, BN-11 | `BankTransfer.java`, `perform`, lines 50–51 | The two `setBalance` calls are swapped: the from account gets `newToAmount` (599.5) and the to account gets `newFromAmount` (1,899.5). |
+| BN-13 | `BankTransfer.java`, `perform`, line 47 | `newToAmount = toBalance + amount - fees` takes the fee off the receiving account too, so it gets 599.5 instead of 600 and the fee is charged twice. |
 
 ## Failure log
 
@@ -433,3 +630,10 @@ found, not at the end.
 | F-14 | TR-14 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
 | F-15 | TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
 | F-16 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| BF-01 | BN-05 | `CashValidator#validateWithdrawal` | 60 | 15 | Alexander Perocho |
+| BF-02 | BN-02 | `CashValidator#validateWithdrawal` | 60 | 10 | Alexander Perocho |
+| BF-03 | BN-06, BN-07 | `FormatChecker#checkPinFormat` | 60 | 10 | Alexander Perocho |
+| BF-04 | BN-10, BN-11 | `BankTransfer#perform` | 120 | 20 | Alexander Perocho |
+| BF-05 | BN-13 | `BankTransfer#perform` | 120 | 15 | Alexander Perocho |
+
+Bonus rows (`BF-xx`): times are rough, in minutes.
