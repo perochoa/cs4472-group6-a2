@@ -195,8 +195,9 @@ All 12 slice statements are covered by WD-01 to WD-05 (100% statement coverage o
 WD-06 is an extra case: it runs the same statements as WD-01 but makes the Sunday side of the `||`
 on n12 true, so both weekend days in the specification are checked.
 
-**Results.** All six withdrawal tests pass (local run of `mvn -B test -Dtest=WithdrawalFeeTest`:
-6 run, 0 failures). The code matches the A2 withdrawal figures for every slice statement, so no
+**Results.** All six withdrawal tests pass (CI run on PR #10, JUnit test report:
+`WithdrawalFeeTest.withdrawalFee(...)[1]` to `[6]` all passed). The JUnit report names the
+parameterized cases by position, not by ID: `[n]` is WD-0n (for example, `[1]` is WD-01). The code matches the A2 withdrawal figures for every slice statement, so no
 fault was found in `calculateWithdrawalFee` and there are no withdrawal rows in the
 fault-localization table or the failure log.
 
@@ -284,6 +285,9 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 ## Test results
 
 Must match the JUnit report on the graded PR's CI run.
+
+In the CI JUnit report, the withdrawal cases appear as `WithdrawalFeeTest.withdrawalFee(...)[n]`,
+where `[n]` is WD-0n (`[1]` = WD-01 through `[6]` = WD-06).
 
 | ID | Test class | Result (pass/fail) |
 |---|---|---|
