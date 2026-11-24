@@ -428,9 +428,15 @@ the balance written for each account with a Mockito `ArgumentCaptor`.
 
 #### 1.4.4 Assumptions (bonus)
 
-1. **Oracles.** `CashValidator` and `FormatChecker` tests use the A1 ATM session rules (README of
-   our A1 repo, "ATM Session"). `BankTransfer` tests use the A2 transfer fee figures and
-   assumption 4.
+1. **Oracles.** `CashValidator` and `FormatChecker` tests use the A1 ATM session rules. The A2
+   README doesn't repeat them, so here they are as the A1 README ("ATM Session") states them:
+   > - Invalid amount: throws `InvalidAmountException`.
+   >   - A valid amount for withdrawal is one that can be dispensed in $20 and $50 bills (the console
+   >     version of the ATM is the one under test).
+   > - Invalid PIN format: throws `InvalidPinFormatException`.
+   >   - A valid PIN is 5 digits.
+
+   `BankTransfer` tests use the A2 transfer fee figures and assumption 4.
 2. **$0 is not a valid withdrawal.** Nothing is dispensed, so it can't be "dispensed in $20 and $50
    bills". This is the same reading as our A1 report (ATM Session, assumption 2: a $0 withdrawal
    throws `InvalidAmountException`).
