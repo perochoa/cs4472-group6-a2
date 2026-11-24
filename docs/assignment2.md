@@ -432,7 +432,8 @@ the balance written for each account with a Mockito `ArgumentCaptor`.
    our A1 repo, "ATM Session"). `BankTransfer` tests use the A2 transfer fee figures and
    assumption 4.
 2. **$0 is not a valid withdrawal.** Nothing is dispensed, so it can't be "dispensed in $20 and $50
-   bills". This is the same reading as our A1 report (Session assumption 5, minimum $20).
+   bills". This is the same reading as our A1 report (ATM Session, assumption 2: a $0 withdrawal
+   throws `InvalidAmountException`).
 3. **`validateDeposit` isn't tested.** The A1 rule only covers withdrawals, so there's no oracle
    for deposits.
 4. **Who pays the transfer fee.** The fee is charged to the account the money is coming from. That
