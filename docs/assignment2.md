@@ -195,7 +195,33 @@ flowchart TD
 |---|---|---|
 | E − N + 2 | N = 34 (1 entry + 15 decisions + 16 assignments + n142 + n144). E = 48 (1 + 15×2 + 16 + 1). 48 − 34 + 2 | **16** |
 | Predicates + 1 | 15 simple predicates: n79, n80, n81, n82, n88, n95, n96, n102, n110, n111, n112, n118, n125, n126, n132. 15 + 1 | **16** |
-| Regions | Each of the 15 binary decisions closes one bounded region, plus the outer region. 15 + 1 | **16** |
+| Regions | Counted in the drawing, not from the predicates (see the region table below): the CFG is planar, the 16 assignment nodes sit side by side, and all 16 rejoin at n142. Each pair of neighbouring assignment nodes, together with the decision where their paths split and n142, encloses one bounded region: 15 bounded regions. Plus the unbounded outer region: 15 + 1 | **16** |
+
+**Region count.** Reading the drawing left to right, each gap between two neighbouring assignment
+nodes is one bounded region. It is closed on top by the decision where the two paths split and on the
+bottom by the two edges into n142:
+
+| Region | Between | Closed by decision |
+|---|---|---|
+| R1 | n83, n85 | n82 |
+| R2 | n85, n89 | n81 |
+| R3 | n89, n91 | n88 |
+| R4 | n91, n97 | n80 |
+| R5 | n97, n99 | n96 |
+| R6 | n99, n103 | n95 |
+| R7 | n103, n105 | n102 |
+| R8 | n105, n113 | n79 |
+| R9 | n113, n115 | n112 |
+| R10 | n115, n119 | n111 |
+| R11 | n119, n121 | n118 |
+| R12 | n121, n127 | n110 |
+| R13 | n127, n129 | n126 |
+| R14 | n129, n133 | n125 |
+| R15 | n133, n135 | n132 |
+| R16 | outer (unbounded) region | n/a |
+
+That gives 15 bounded regions + 1 outer region = 16. Each decision closes exactly one region, which
+is why this count agrees with predicates + 1, but it was counted from the faces of the drawing.
 
 All three agree: **V(G) = 16**, so the basis set has 16 linearly independent paths and we need 16 tests.
 
@@ -207,7 +233,7 @@ transfer (McCabe's method says to start from a typical path).
 
 The other 15 paths come from flipping one decision at a time, as McCabe's method does. Each time we
 reach a decision that hasn't been flipped yet, we flip it and take the TRUE branch at every later
-decision. decision. Each new path uses at least one edge that no earlier path used, so the 16 paths are
+decision. Each new path uses at least one edge that no earlier path used, so the 16 paths are
 linearly independent.
 
 | Path | Flipped decision (from) | Node sequence |
@@ -259,6 +285,9 @@ complexity count (16) matches the V(G) computed above. At class level, `FeesCalc
 instructions and 61% branches on this run, because the withdrawal and deposit tests are not merged
 yet. The coverage comment on the PR shows only the overall project figure (7.2%), because this PR
 doesn't change any main source file.
+
+In the CI JUnit report, invocation `[n]` of `TransferFeeTest.transferFee` is TR-n, because the
+rows run in `@CsvSource` order (`[1]` = TR-01, …, `[16]` = TR-16).
 
 ### 1.4 Bonus: faults outside `FeesCalculator` (#6)
 
