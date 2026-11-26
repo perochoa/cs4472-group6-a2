@@ -19,6 +19,8 @@ import atm.exceptions.InvalidPinFormatException;
  * P3 = n32 n33(T) n34(F) x                  (infeasible: i = 0 < 4 on the first test)
  * P4 = n32 n33(T) n34(T) n35a(T) n36 x
  * P5 = n32 n33(T) n34(T) n35a(F) n35b(T) n36 x
+ * P6 = n32 n33(T) n34(T) n35a(F) n35b(F) n34(T) n35a(T) n36 x   (replaces P3: one loop
+ *      iteration, then a throw. It is the only path with the back edge and no normal exit.)
  *
  * Oracle: A1 ATM session rules. A valid PIN is 5 digits; anything else throws
  * InvalidPinFormatException.
@@ -39,6 +41,8 @@ class FormatCheckerTest {
 		"BN-08, 'P4 n33(T) n34(T) n35a(T) n36', /123, false",
 		// 4 characters -> not valid ('9' is the boundary of n35b)
 		"BN-09, 'P5 n33(T) n34(T) n35a(F) n35b(T) n36', 9123, false",
+		// '/' in the second position (and 4 characters) -> not valid
+		"BN-16, 'P6 n33(T) n34(T) n35a(F) n35b(F) n34(T) n35a(T) n36', 1/23, false",
 	})
 	void checkPinFormat(String id, String covers, String pin, boolean expected) {
 		char[] chars = pin.toCharArray();

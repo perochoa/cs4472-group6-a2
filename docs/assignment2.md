@@ -373,10 +373,13 @@ runs and exits.
 | P3 | n32 n33(T) n34(F) x | n34 | No: `i = 0` so `i < 4` is true the first time |
 | P4 | n32 n33(T) n34(T) n35a(T) n36 x | n35a | Yes |
 | P5 | n32 n33(T) n34(T) n35a(F) n35b(T) n36 x | n35b | Yes |
+| P6 | n32 n33(T) n34(T) n35a(F) n35b(F) n34(T) n35a(T) n36 x | n35a, second iteration (replaces P3) | Yes |
 
-P3 has no test. The `n34(F)` edge it was meant to add is still run by P1 when the loop ends. For
+P3 is infeasible, so P6 takes its place to keep 5 independent paths. P6 goes round the loop once
+and then throws. It's independent of the other four: P1 is the only one with the `n34(F)` exit, and
+P2, P4 and P5 never take the back edge (n35b(F) → n34), so no combination of them gives P6. For
 P4 and P5 we used the boundary character of each condition: `/` (just below `'0'`) and `9`
-(the value `>= '9'` starts at).
+(the value `>= '9'` starts at). P6 puts the `/` in the second position.
 
 #### 1.4.3 `BankTransfer#perform` (lines 19–65)
 
@@ -529,6 +532,7 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 | BN-07 | `FormatChecker#checkPinFormat` | P2 | `pin = 12345` | no exception | A1: a valid PIN is 5 digits |
 | BN-08 | `FormatChecker#checkPinFormat` | P4 | `pin = /123` | `InvalidPinFormatException` | A1: a valid PIN is 5 digits |
 | BN-09 | `FormatChecker#checkPinFormat` | P5 | `pin = 9123` | `InvalidPinFormatException` | A1: a valid PIN is 5 digits |
+| BN-16 | `FormatChecker#checkPinFormat` | P6 | `pin = 1/23` | `InvalidPinFormatException` | A1: a valid PIN is 5 digits |
 | BN-10 | `BankTransfer#perform` | T1, A1 | $100, from $2,000, to $500, not a student, fee 0.5 | from account set to 1,899.5 | A2 transfer: not a student, ≥ $100, from ≥ $1,000, to < $1,000 → 0.5%; assumption 4 |
 | BN-11 | `BankTransfer#perform` | A3 | same as BN-10 | to account set to 600 | same as BN-10 |
 | BN-12 | `BankTransfer#perform` | A4, F1 | same as BN-10 | successful, returned from balance 1,899.5 | same as BN-10 |
@@ -569,6 +573,7 @@ Must match the JUnit report on the graded PR's CI run.
 | BN-07 | `atm.utils.FormatCheckerTest` | Fail |
 | BN-08 | `atm.utils.FormatCheckerTest` | Pass |
 | BN-09 | `atm.utils.FormatCheckerTest` | Pass |
+| BN-16 | `atm.utils.FormatCheckerTest` | Pass |
 | BN-10 | `bank.transactions.BankTransferTest` | Fail |
 | BN-11 | `bank.transactions.BankTransferTest` | Fail |
 | BN-12 | `bank.transactions.BankTransferTest` | Pass |
