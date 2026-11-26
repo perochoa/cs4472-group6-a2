@@ -393,7 +393,21 @@ Only group tests that reach the same faulty line. Same columns as the PR templat
 
 | Failing test(s) | Suspected fault (file, method, line) | One-line justification |
 |---|---|---|
-| TR-01 – TR-15 | `FeesCalculator.java`, `calculateTransferFee`, lines 83, 85, 89, 91, 97, 99, 103, 105, 113, 115, 119, 121, 127, 129, 133 (`feePercentage = ...`) | Each test reaches exactly one assignment and every fee comes back 10× the spec (for example, TR-01 returns 0.5 instead of 0.05), so each `feePercentage` constant is off by one decimal place. |
+| TR-01 | `FeesCalculator.java`, `calculateTransferFee`, line 83 (`feePercentage = 0.01`) | P1 is the only path through line 83 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-02 | `FeesCalculator.java`, `calculateTransferFee`, line 85 (`feePercentage = 0.005`) | P2 is the only path through line 85 and returns 0.25 instead of 0.025 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-03 | `FeesCalculator.java`, `calculateTransferFee`, line 89 (`feePercentage = 0.05`) | P3 is the only path through line 89 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-04 | `FeesCalculator.java`, `calculateTransferFee`, line 91 (`feePercentage = 0.025`) | P4 is the only path through line 91 and returns 1.25 instead of 0.125 (10×), so the constant is 0.025 where the spec says 0.0025. |
+| TR-05 | `FeesCalculator.java`, `calculateTransferFee`, line 97 (`feePercentage = 0.005`) | P5 is the only path through line 97 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-06 | `FeesCalculator.java`, `calculateTransferFee`, line 99 (`feePercentage = 0.0025`) | P6 is the only path through line 99 and returns 0.5 instead of 0.05 (10×), so the constant is 0.0025 where the spec says 0.00025. |
+| TR-07 | `FeesCalculator.java`, `calculateTransferFee`, line 103 (`feePercentage = 0.025`) | P7 is the only path through line 103 and returns 5.0 instead of 0.5 (10×), so the constant is 0.025 where the spec says 0.0025. |
+| TR-08 | `FeesCalculator.java`, `calculateTransferFee`, line 105 (`feePercentage = 0.0125`) | P8 is the only path through line 105 and returns 2.5 instead of 0.25 (10×), so the constant is 0.0125 where the spec says 0.00125. |
+| TR-09 | `FeesCalculator.java`, `calculateTransferFee`, line 113 (`feePercentage = 0.02`) | P9 is the only path through line 113 and returns 1.0 instead of 0.1 (10×), so the constant is 0.02 where the spec says 0.002. |
+| TR-10 | `FeesCalculator.java`, `calculateTransferFee`, line 115 (`feePercentage = 0.01`) | P10 is the only path through line 115 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-11 | `FeesCalculator.java`, `calculateTransferFee`, line 119 (`feePercentage = 0.1`) | P11 is the only path through line 119 and returns 5.0 instead of 0.5 (10×), so the constant is 0.1 where the spec says 0.01. |
+| TR-12 | `FeesCalculator.java`, `calculateTransferFee`, line 121 (`feePercentage = 0.05`) | P12 is the only path through line 121 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-13 | `FeesCalculator.java`, `calculateTransferFee`, line 127 (`feePercentage = 0.01`) | P13 is the only path through line 127 and returns 2.0 instead of 0.2 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-14 | `FeesCalculator.java`, `calculateTransferFee`, line 129 (`feePercentage = 0.005`) | P14 is the only path through line 129 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-15 | `FeesCalculator.java`, `calculateTransferFee`, line 133 (`feePercentage = 0.05`) | P15 is the only path through line 133 and returns 10.0 instead of 1.0 (10×), so the constant is 0.05 where the spec says 0.005. |
 | TR-16 | `FeesCalculator.java`, `calculateTransferFee`, line 135 (`feePercentage = 0.055`) | P16 is the only path through line 135 and returns 11.0 instead of 0.5 (22×), which doesn't fit the 10× pattern, so line 135 has its own wrong constant (0.055 where the spec says 0.0025). |
 
 ## Failure log
@@ -403,5 +417,19 @@ found, not at the end.
 
 | Failure ID | Exposing test(s) | Method | Time testing before found | Time diagnosing | Found by |
 |---|---|---|---|---|---|
-| F-01 | TR-01 – TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
-| F-02 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-01 | TR-01 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-02 | TR-02 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-03 | TR-03 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-04 | TR-04 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-05 | TR-05 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-06 | TR-06 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-07 | TR-07 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-08 | TR-08 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-09 | TR-09 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-10 | TR-10 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-11 | TR-11 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-12 | TR-12 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-13 | TR-13 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-14 | TR-14 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-15 | TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-16 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
