@@ -56,7 +56,8 @@ Line reference:
 - `@ParameterizedTest` + `@CsvSource`, with the case ID as the first column.
 - Every row states the structural element it covers, and every test calls the target method.
 - Checkstyle must pass: `mvn -B checkstyle:check`.
-- Leave the starter `FeesCalculatorTest` alone; #7 decides what to do with it.
+- The starter tests (`bank.utils.FeesCalculatorTest`, `atm.ATMTest`) stay in the suite unchanged.
+  They're explained under [Test results](#test-results) (#7).
 
 Template (replace the placeholders):
 
@@ -216,8 +217,9 @@ total (4.88%), so these numbers come from the `jacoco.xml` in the run's `jacoco-
 | `calculateWithdrawalFee` | 11/11 (100%) | 10/10 (100%) |
 | `bank.utils.FeesCalculator` (whole class) | 12/62 (19.35%) | 10/54 (18.52%) |
 
-Every line and branch of `calculateWithdrawalFee` runs. The class totals are low only because
-the deposit and transfer methods have no tests yet in this PR.
+Every line and branch of `calculateWithdrawalFee` runs. The class totals are low because the
+PR #10 branch only had the withdrawal tests. The class total for the whole suite is under
+[Coverage](#coverage).
 
 ### 1.2 Deposit: DU-paths for `interestPercentage` (#4)
 
@@ -376,8 +378,8 @@ From the `jacoco-report` artifact of the PR #9 CI run, `FeesCalculator` page:
 
 The 16 basis paths run every statement and both outcomes of all 15 decisions. JaCoCo's own
 complexity count (16) matches the V(G) computed above. At class level, `FeesCalculator` is at 64%
-instructions and 61% branches on this run, because the withdrawal and deposit tests are not merged
-yet. The coverage comment on the PR shows only the overall project figure (7.2%), because this PR
+instructions and 61% branches on this run, because the PR #9 branch only had the transfer tests.
+The class total for the whole suite is under [Coverage](#coverage). The coverage comment on the PR shows only the overall project figure (7.2%), because this PR
 doesn't change any main source file.
 
 In the CI JUnit report, invocation `[n]` of `TransferFeeTest.transferFee` is TR-n, because the
@@ -649,48 +651,71 @@ where `[n]` is WD-0n (`[1]` = WD-01 through `[6]` = WD-06).
 | WD-04 | `bank.utils.WithdrawalFeeTest` | pass |
 | WD-05 | `bank.utils.WithdrawalFeeTest` | pass |
 | WD-06 | `bank.utils.WithdrawalFeeTest` | pass |
-| TR-01 | TransferFeeTest | fail |
-| TR-02 | TransferFeeTest | fail |
-| TR-03 | TransferFeeTest | fail |
-| TR-04 | TransferFeeTest | fail |
-| TR-05 | TransferFeeTest | fail |
-| TR-06 | TransferFeeTest | fail |
-| TR-07 | TransferFeeTest | fail |
-| TR-08 | TransferFeeTest | fail |
-| TR-09 | TransferFeeTest | fail |
-| TR-10 | TransferFeeTest | fail |
-| TR-11 | TransferFeeTest | fail |
-| TR-12 | TransferFeeTest | fail |
-| TR-13 | TransferFeeTest | fail |
-| TR-14 | TransferFeeTest | fail |
-| TR-15 | TransferFeeTest | fail |
-| TR-16 | TransferFeeTest | fail |
-| BN-01 | `atm.utils.CashValidatorTest` | Pass |
-| BN-02 | `atm.utils.CashValidatorTest` | Fail |
-| BN-03 | `atm.utils.CashValidatorTest` | Pass |
-| BN-04 | `atm.utils.CashValidatorTest` | Pass |
-| BN-05 | `atm.utils.CashValidatorTest` | Fail |
-| BN-06 | `atm.utils.FormatCheckerTest` | Fail |
-| BN-07 | `atm.utils.FormatCheckerTest` | Fail |
-| BN-08 | `atm.utils.FormatCheckerTest` | Pass |
-| BN-09 | `atm.utils.FormatCheckerTest` | Pass |
-| BN-16 | `atm.utils.FormatCheckerTest` | Pass |
-| BN-10 | `bank.transactions.BankTransferTest` | Fail |
-| BN-11 | `bank.transactions.BankTransferTest` | Fail |
-| BN-12 | `bank.transactions.BankTransferTest` | Pass |
-| BN-13 | `bank.transactions.BankTransferTest` | Fail |
-| BN-14 | `bank.transactions.BankTransferTest` | Pass |
-| BN-15 | `bank.transactions.BankTransferTest` | Pass |
+| TR-01 | `bank.utils.TransferFeeTest` | fail |
+| TR-02 | `bank.utils.TransferFeeTest` | fail |
+| TR-03 | `bank.utils.TransferFeeTest` | fail |
+| TR-04 | `bank.utils.TransferFeeTest` | fail |
+| TR-05 | `bank.utils.TransferFeeTest` | fail |
+| TR-06 | `bank.utils.TransferFeeTest` | fail |
+| TR-07 | `bank.utils.TransferFeeTest` | fail |
+| TR-08 | `bank.utils.TransferFeeTest` | fail |
+| TR-09 | `bank.utils.TransferFeeTest` | fail |
+| TR-10 | `bank.utils.TransferFeeTest` | fail |
+| TR-11 | `bank.utils.TransferFeeTest` | fail |
+| TR-12 | `bank.utils.TransferFeeTest` | fail |
+| TR-13 | `bank.utils.TransferFeeTest` | fail |
+| TR-14 | `bank.utils.TransferFeeTest` | fail |
+| TR-15 | `bank.utils.TransferFeeTest` | fail |
+| TR-16 | `bank.utils.TransferFeeTest` | fail |
+| BN-01 | `atm.utils.CashValidatorTest` | pass |
+| BN-02 | `atm.utils.CashValidatorTest` | fail |
+| BN-03 | `atm.utils.CashValidatorTest` | pass |
+| BN-04 | `atm.utils.CashValidatorTest` | pass |
+| BN-05 | `atm.utils.CashValidatorTest` | fail |
+| BN-06 | `atm.utils.FormatCheckerTest` | fail |
+| BN-07 | `atm.utils.FormatCheckerTest` | fail |
+| BN-08 | `atm.utils.FormatCheckerTest` | pass |
+| BN-09 | `atm.utils.FormatCheckerTest` | pass |
+| BN-16 | `atm.utils.FormatCheckerTest` | pass |
+| BN-10 | `bank.transactions.BankTransferTest` | fail |
+| BN-11 | `bank.transactions.BankTransferTest` | fail |
+| BN-12 | `bank.transactions.BankTransferTest` | pass |
+| BN-13 | `bank.transactions.BankTransferTest` | fail |
+| BN-14 | `bank.transactions.BankTransferTest` | pass |
+| BN-15 | `bank.transactions.BankTransferTest` | pass |
+| starter | `bank.utils.FeesCalculatorTest` (`withdrawalTest`) | pass |
+| starter | `atm.ATMTest` (`checkCorrectPINTest`) | pass |
+| starter | `atm.ATMTest` (`checkIncorrectPINTest`) | pass |
+
+The rows marked "starter" are the tests that came with the starter code. They still run, so they
+show up in the CI JUnit report, but they weren't built from a slice, DU-path or basis path, so
+they have no case ID and aren't part of our white-box test sets:
+
+- `FeesCalculatorTest.withdrawalTest` calls `calculateWithdrawalFee(200, 1000, false, 0)` and
+  expects 0.2. It takes the same path as WD-04 (n6, n10, n18, n20, n21, n28, n30), and 0.2 matches
+  the spec (not a student, $1,000 or more but less than $10,000 → 0.1%). `dayOfWeek = 0` isn't a
+  valid `Calendar` day, but the non-student branch never reads it.
+- `ATMTest` tests `ATM#checkPin` with a mocked dispatcher and never calls a `FeesCalculator`
+  method. `checkCorrectPINTest` passes with the 4-digit PIN `5555` only because of F-19
+  (`checkPinFormat` line 33 checks for 4 characters). It passes, so it isn't counted as a
+  separate failure.
 
 ## Coverage
 
-From the JaCoCo comment on the graded PR's final CI run (#7).
+From the `jacoco-report` artifact of the graded PR's final CI run (#7). The coverage comment on
+that PR only shows the project total, because the `dev` → `main` PR doesn't change any main source
+file.
 
 | Class | Line coverage | Branch coverage |
 |---|---|---|
 | `bank.utils.FeesCalculator` | TODO | TODO |
 
 Per-PR numbers: each owner quotes the JaCoCo numbers from their own PR in their section 1 subsection.
+
+The bonus tests (1.4) aren't counted in the `FeesCalculator` numbers. They test classes outside
+`FeesCalculator`, and `BankTransferTest` mocks it. The starter `FeesCalculatorTest.withdrawalTest`
+does run `calculateWithdrawalFee`, but it takes the same path as WD-04, so it doesn't add any
+coverage.
 
 ## Fault localization
 
