@@ -6,7 +6,7 @@ CS4472B, group 6. Target: `bank.utils.FeesCalculator`.
 |---|---|---|---|
 | Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | TODO |
 | Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | TODO |
-| Transfer | Basis path testing | #5 | TODO |
+| Transfer | Basis path testing | #5 | Sophia Tong |
 | Bonus | Any of the three, outside `FeesCalculator` | #6 | TODO |
 
 > **How to use this file.** Fill in only the sections for your issue and replace their `TODO`
@@ -147,13 +147,154 @@ TODO (#4):
 
 ### 1.3 Transfer: basis path testing (#5)
 
-TODO (#5):
-- **CFG** in Mermaid, nodes numbered by source line.
-- **Cyclomatic complexity** computed three ways (E − N + 2, predicates + 1, regions), with a check
-  that they agree.
-- **Baseline path** and why it was chosen.
-- **Basis set:** each path as a node sequence, derived by flipping one decision at a time.
-- **Assumptions** specific to transfer.
+**Target:** `FeesCalculator#calculateTransferFee` (lines 75–145).
+
+#### Control-flow graph
+
+Nodes are numbered by source line. Decision nodes are the `if` lines; each leaf node is one
+`feePercentage = ...` assignment. `n77` is the method entry (the declaration of `feePercentage`), `n142` is
+`double fee = amount * feePercentage;` and `n144` is `return fee;`.
+
+```mermaid
+flowchart TD
+    n77([n77 entry]) --> n79{n79 student}
+    n79 -- T --> n80{n80 amount < 100}
+    n79 -- F --> n110{n110 amount < 100}
+
+    n80 -- T --> n81{n81 from < 1000}
+    n80 -- F --> n95{n95 from < 1000}
+    n81 -- T --> n82{n82 to < 1000}
+    n81 -- F --> n88{n88 to < 1000}
+    n95 -- T --> n96{n96 to < 1000}
+    n95 -- F --> n102{n102 to < 1000}
+    n82 -- T --> n83[n83 0.01]
+    n82 -- F --> n85[n85 0.005]
+    n88 -- T --> n89[n89 0.05]
+    n88 -- F --> n91[n91 0.025]
+    n96 -- T --> n97[n97 0.005]
+    n96 -- F --> n99[n99 0.0025]
+    n102 -- T --> n103[n103 0.025]
+    n102 -- F --> n105[n105 0.0125]
+
+    n110 -- T --> n111{n111 from < 1000}
+    n110 -- F --> n125{n125 from < 1000}
+    n111 -- T --> n112{n112 to < 1000}
+    n111 -- F --> n118{n118 to < 1000}
+    n125 -- T --> n126{n126 to < 1000}
+    n125 -- F --> n132{n132 to < 1000}
+    n112 -- T --> n113[n113 0.02]
+    n112 -- F --> n115[n115 0.01]
+    n118 -- T --> n119[n119 0.1]
+    n118 -- F --> n121[n121 0.05]
+    n126 -- T --> n127[n127 0.01]
+    n126 -- F --> n129[n129 0.005]
+    n132 -- T --> n133[n133 0.05]
+    n132 -- F --> n135[n135 0.055]
+
+    n83 & n85 & n89 & n91 & n97 & n99 & n103 & n105 --> n142
+    n113 & n115 & n119 & n121 & n127 & n129 & n133 & n135 --> n142
+    n142[n142 fee = amount * feePercentage] --> n144([n144 return fee])
+```
+
+#### Cyclomatic complexity
+
+| Method | Working | V(G) |
+|---|---|---|
+| E − N + 2 | N = 34 (1 entry + 15 decisions + 16 assignments + n142 + n144). E = 48 (1 + 15×2 + 16 + 1). 48 − 34 + 2 | **16** |
+| Predicates + 1 | 15 simple predicates: n79, n80, n81, n82, n88, n95, n96, n102, n110, n111, n112, n118, n125, n126, n132. 15 + 1 | **16** |
+| Regions | Counted in the drawing, not from the predicates (see the region table below): the CFG is planar, the 16 assignment nodes sit side by side, and all 16 rejoin at n142. Each pair of neighbouring assignment nodes, together with the decision where their paths split and n142, encloses one bounded region: 15 bounded regions. Plus the unbounded outer region: 15 + 1 | **16** |
+
+**Region count.** Reading the drawing left to right, each gap between two neighbouring assignment
+nodes is one bounded region. It is closed on top by the decision where the two paths split and on the
+bottom by the two edges into n142:
+
+| Region | Between | Closed by decision |
+|---|---|---|
+| R1 | n83, n85 | n82 |
+| R2 | n85, n89 | n81 |
+| R3 | n89, n91 | n88 |
+| R4 | n91, n97 | n80 |
+| R5 | n97, n99 | n96 |
+| R6 | n99, n103 | n95 |
+| R7 | n103, n105 | n102 |
+| R8 | n105, n113 | n79 |
+| R9 | n113, n115 | n112 |
+| R10 | n115, n119 | n111 |
+| R11 | n119, n121 | n118 |
+| R12 | n121, n127 | n110 |
+| R13 | n127, n129 | n126 |
+| R14 | n129, n133 | n125 |
+| R15 | n133, n135 | n132 |
+| R16 | outer (unbounded) region | n/a |
+
+That gives 15 bounded regions + 1 outer region = 16. Each decision closes exactly one region, which
+is why this count agrees with predicates + 1, but it was counted from the faces of the drawing.
+
+All three agree: **V(G) = 16**, so the basis set has 16 linearly independent paths and we need 16 tests.
+
+#### Baseline path and basis set
+
+**Baseline (P1):** take the TRUE branch at every decision: student, amount < $100, from < $1,000,
+to < $1,000. We chose it because it is the first branch in source order, and it is a normal, valid
+transfer (McCabe's method says to start from a typical path).
+
+The other 15 paths come from flipping one decision at a time, as McCabe's method does. Each time we
+reach a decision that hasn't been flipped yet, we flip it and take the TRUE branch at every later
+decision. Each new path uses at least one edge that no earlier path used, so the 16 paths are
+linearly independent.
+
+| Path | Flipped decision (from) | Node sequence |
+|---|---|---|
+| P1 | baseline | n77 → n79T → n80T → n81T → n82T → n83 → n142 → n144 |
+| P2 | n82 (P1) | n77 → n79T → n80T → n81T → n82F → n85 → n142 → n144 |
+| P3 | n81 (P1) | n77 → n79T → n80T → n81F → n88T → n89 → n142 → n144 |
+| P4 | n88 (P3) | n77 → n79T → n80T → n81F → n88F → n91 → n142 → n144 |
+| P5 | n80 (P1) | n77 → n79T → n80F → n95T → n96T → n97 → n142 → n144 |
+| P6 | n96 (P5) | n77 → n79T → n80F → n95T → n96F → n99 → n142 → n144 |
+| P7 | n95 (P5) | n77 → n79T → n80F → n95F → n102T → n103 → n142 → n144 |
+| P8 | n102 (P7) | n77 → n79T → n80F → n95F → n102F → n105 → n142 → n144 |
+| P9 | n79 (P1) | n77 → n79F → n110T → n111T → n112T → n113 → n142 → n144 |
+| P10 | n112 (P9) | n77 → n79F → n110T → n111T → n112F → n115 → n142 → n144 |
+| P11 | n111 (P9) | n77 → n79F → n110T → n111F → n118T → n119 → n142 → n144 |
+| P12 | n118 (P11) | n77 → n79F → n110T → n111F → n118F → n121 → n142 → n144 |
+| P13 | n110 (P9) | n77 → n79F → n110F → n125T → n126T → n127 → n142 → n144 |
+| P14 | n126 (P13) | n77 → n79F → n110F → n125T → n126F → n129 → n142 → n144 |
+| P15 | n125 (P13) | n77 → n79F → n110F → n125F → n132T → n133 → n142 → n144 |
+| P16 | n132 (P15) | n77 → n79F → n110F → n125F → n132F → n135 → n142 → n144 |
+
+Every path is feasible: the four decisions test four independent inputs, so any TRUE/FALSE
+combination can be reached.
+
+#### Assumptions (transfer)
+
+1. **Node numbering.** Nodes are source lines. Closing braces of the `if`/`else` blocks are join
+   points with no statement, so they don't get nodes of their own. Each assignment node goes
+   straight to `n142`. Adding separate join nodes would add the same number of nodes and edges,
+   so V(G) would not change.
+2. **Predicates.** Every `if` tests one simple condition, so each one counts as one predicate.
+3. **Input values.** These are representative values, not boundary values, because basis path
+   testing only has to drive each path: `amount` is 50 (< $100) or 200 (≥ $100). Balances are 500
+   (< $1,000) or 2,000 (≥ $1,000).
+4. **Oracle.** Expected fee = `amount × percentage`, with the percentage taken from the README A2
+   "Transfer" clause for that path.
+5. **Tolerance.** `DELTA = 1e-6` (shared assumption 1).
+
+#### Coverage (from the JaCoCo report on PR #9)
+
+From the `jacoco-report` artifact of the PR #9 CI run, `FeesCalculator` page:
+
+| Method | Instruction coverage | Branch coverage | Lines covered | Cyclomatic complexity |
+|---|---|---|---|---|
+| `calculateTransferFee` | 100% | 100% | 33 / 33 | 16 |
+
+The 16 basis paths run every statement and both outcomes of all 15 decisions. JaCoCo's own
+complexity count (16) matches the V(G) computed above. At class level, `FeesCalculator` is at 64%
+instructions and 61% branches on this run, because the withdrawal and deposit tests are not merged
+yet. The coverage comment on the PR shows only the overall project figure (7.2%), because this PR
+doesn't change any main source file.
+
+In the CI JUnit report, invocation `[n]` of `TransferFeeTest.transferFee` is TR-n, because the
+rows run in `@CsvSource` order (`[1]` = TR-01, …, `[16]` = TR-16).
 
 ### 1.4 Bonus: faults outside `FeesCalculator` (#6)
 
@@ -187,7 +328,22 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 
 | ID | Covers | `amount` | `fromAccountBalance` | `toAccountBalance` | `student` | Expected fee | Spec clause |
 |---|---|---|---|---|---|---|---|
-| TR-01 | | | | | | | |
+| TR-01 | P1 (n83) | 50 | 500 | 500 | true | 0.05 | Student, < $100, from < $1,000, to < $1,000: 0.1% |
+| TR-02 | P2 (n85) | 50 | 500 | 2000 | true | 0.025 | Student, < $100, from < $1,000, otherwise: 0.05% |
+| TR-03 | P3 (n89) | 50 | 2000 | 500 | true | 0.25 | Student, < $100, from ≥ $1,000, to < $1,000: 0.5% |
+| TR-04 | P4 (n91) | 50 | 2000 | 2000 | true | 0.125 | Student, < $100, from ≥ $1,000, otherwise: 0.25% |
+| TR-05 | P5 (n97) | 200 | 500 | 500 | true | 0.1 | Student, ≥ $100, from < $1,000, to < $1,000: 0.05% |
+| TR-06 | P6 (n99) | 200 | 500 | 2000 | true | 0.05 | Student, ≥ $100, from < $1,000, otherwise: 0.025% |
+| TR-07 | P7 (n103) | 200 | 2000 | 500 | true | 0.5 | Student, ≥ $100, from ≥ $1,000, to < $1,000: 0.25% |
+| TR-08 | P8 (n105) | 200 | 2000 | 2000 | true | 0.25 | Student, ≥ $100, from ≥ $1,000, otherwise: 0.125% |
+| TR-09 | P9 (n113) | 50 | 500 | 500 | false | 0.1 | Non-student, < $100, from < $1,000, to < $1,000: 0.2% |
+| TR-10 | P10 (n115) | 50 | 500 | 2000 | false | 0.05 | Non-student, < $100, from < $1,000, otherwise: 0.1% |
+| TR-11 | P11 (n119) | 50 | 2000 | 500 | false | 0.5 | Non-student, < $100, from ≥ $1,000, to < $1,000: 1% |
+| TR-12 | P12 (n121) | 50 | 2000 | 2000 | false | 0.25 | Non-student, < $100, from ≥ $1,000, otherwise: 0.5% |
+| TR-13 | P13 (n127) | 200 | 500 | 500 | false | 0.2 | Non-student, ≥ $100, from < $1,000, to < $1,000: 0.1% |
+| TR-14 | P14 (n129) | 200 | 500 | 2000 | false | 0.1 | Non-student, ≥ $100, from < $1,000, otherwise: 0.05% |
+| TR-15 | P15 (n133) | 200 | 2000 | 500 | false | 1.0 | Non-student, ≥ $100, from ≥ $1,000, to < $1,000: 0.5% |
+| TR-16 | P16 (n135) | 200 | 2000 | 2000 | false | 0.5 | Non-student, ≥ $100, from ≥ $1,000, otherwise: 0.25% |
 
 ### 2.4 Bonus (#6)
 
@@ -203,7 +359,22 @@ Must match the JUnit report on the graded PR's CI run.
 
 | ID | Test class | Result (pass/fail) |
 |---|---|---|
-| | | |
+| TR-01 | TransferFeeTest | fail |
+| TR-02 | TransferFeeTest | fail |
+| TR-03 | TransferFeeTest | fail |
+| TR-04 | TransferFeeTest | fail |
+| TR-05 | TransferFeeTest | fail |
+| TR-06 | TransferFeeTest | fail |
+| TR-07 | TransferFeeTest | fail |
+| TR-08 | TransferFeeTest | fail |
+| TR-09 | TransferFeeTest | fail |
+| TR-10 | TransferFeeTest | fail |
+| TR-11 | TransferFeeTest | fail |
+| TR-12 | TransferFeeTest | fail |
+| TR-13 | TransferFeeTest | fail |
+| TR-14 | TransferFeeTest | fail |
+| TR-15 | TransferFeeTest | fail |
+| TR-16 | TransferFeeTest | fail |
 
 ## Coverage
 
@@ -222,7 +393,22 @@ Only group tests that reach the same faulty line. Same columns as the PR templat
 
 | Failing test(s) | Suspected fault (file, method, line) | One-line justification |
 |---|---|---|
-| | | |
+| TR-01 | `FeesCalculator.java`, `calculateTransferFee`, line 83 (`feePercentage = 0.01`) | P1 is the only path through line 83 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-02 | `FeesCalculator.java`, `calculateTransferFee`, line 85 (`feePercentage = 0.005`) | P2 is the only path through line 85 and returns 0.25 instead of 0.025 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-03 | `FeesCalculator.java`, `calculateTransferFee`, line 89 (`feePercentage = 0.05`) | P3 is the only path through line 89 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-04 | `FeesCalculator.java`, `calculateTransferFee`, line 91 (`feePercentage = 0.025`) | P4 is the only path through line 91 and returns 1.25 instead of 0.125 (10×), so the constant is 0.025 where the spec says 0.0025. |
+| TR-05 | `FeesCalculator.java`, `calculateTransferFee`, line 97 (`feePercentage = 0.005`) | P5 is the only path through line 97 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-06 | `FeesCalculator.java`, `calculateTransferFee`, line 99 (`feePercentage = 0.0025`) | P6 is the only path through line 99 and returns 0.5 instead of 0.05 (10×), so the constant is 0.0025 where the spec says 0.00025. |
+| TR-07 | `FeesCalculator.java`, `calculateTransferFee`, line 103 (`feePercentage = 0.025`) | P7 is the only path through line 103 and returns 5.0 instead of 0.5 (10×), so the constant is 0.025 where the spec says 0.0025. |
+| TR-08 | `FeesCalculator.java`, `calculateTransferFee`, line 105 (`feePercentage = 0.0125`) | P8 is the only path through line 105 and returns 2.5 instead of 0.25 (10×), so the constant is 0.0125 where the spec says 0.00125. |
+| TR-09 | `FeesCalculator.java`, `calculateTransferFee`, line 113 (`feePercentage = 0.02`) | P9 is the only path through line 113 and returns 1.0 instead of 0.1 (10×), so the constant is 0.02 where the spec says 0.002. |
+| TR-10 | `FeesCalculator.java`, `calculateTransferFee`, line 115 (`feePercentage = 0.01`) | P10 is the only path through line 115 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-11 | `FeesCalculator.java`, `calculateTransferFee`, line 119 (`feePercentage = 0.1`) | P11 is the only path through line 119 and returns 5.0 instead of 0.5 (10×), so the constant is 0.1 where the spec says 0.01. |
+| TR-12 | `FeesCalculator.java`, `calculateTransferFee`, line 121 (`feePercentage = 0.05`) | P12 is the only path through line 121 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-13 | `FeesCalculator.java`, `calculateTransferFee`, line 127 (`feePercentage = 0.01`) | P13 is the only path through line 127 and returns 2.0 instead of 0.2 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-14 | `FeesCalculator.java`, `calculateTransferFee`, line 129 (`feePercentage = 0.005`) | P14 is the only path through line 129 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-15 | `FeesCalculator.java`, `calculateTransferFee`, line 133 (`feePercentage = 0.05`) | P15 is the only path through line 133 and returns 10.0 instead of 1.0 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-16 | `FeesCalculator.java`, `calculateTransferFee`, line 135 (`feePercentage = 0.055`) | P16 is the only path through line 135 and returns 11.0 instead of 0.5 (22×), which doesn't fit the 10× pattern, so line 135 has its own wrong constant (0.055 where the spec says 0.0025). |
 
 ## Failure log
 
@@ -231,4 +417,19 @@ found, not at the end.
 
 | Failure ID | Exposing test(s) | Method | Time testing before found | Time diagnosing | Found by |
 |---|---|---|---|---|---|
-| F-01 | | | | | |
+| F-01 | TR-01 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-02 | TR-02 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-03 | TR-03 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-04 | TR-04 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-05 | TR-05 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-06 | TR-06 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-07 | TR-07 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-08 | TR-08 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-09 | TR-09 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-10 | TR-10 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-11 | TR-11 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-12 | TR-12 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-13 | TR-13 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-14 | TR-14 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-15 | TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-16 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
