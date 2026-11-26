@@ -86,6 +86,13 @@ class XxxFeeTest {
 }
 ```
 
+### Faults and failure log
+- Fault localization: one row per faulty line or condition. Put tests in the same row only if they
+  reach the same faulty line.
+- Failure log: one failure ID per fault, so it lines up with the fault-localization rows.
+- If one test exposes more than one fault, list it on each of those rows.
+- Faults found in the same run can share the same times.
+
 ### Pull requests
 - Short-lived branch off `dev`, PR into `dev`, `phase:tests` label, 3 approvals.
 - Quote the JaCoCo numbers from your PR's coverage comment in your section.
@@ -210,8 +217,8 @@ Per-PR numbers: each owner quotes the JaCoCo numbers from their own PR in their 
 
 ## Fault localization
 
-One row per fault. Group every failing test that exposes the same fault in one row. Same columns
-as the PR template.
+One row per faulty line or condition (see [Faults and failure log](#faults-and-failure-log)).
+Only group tests that reach the same faulty line. Same columns as the PR template.
 
 | Failing test(s) | Suspected fault (file, method, line) | One-line justification |
 |---|---|---|
@@ -219,7 +226,8 @@ as the PR template.
 
 ## Failure log
 
-Kept for Assignment 3. Add a row as soon as a failure is found, not at the end.
+Kept for Assignment 3. One failure ID per fault-localization row. Add a row as soon as a failure is
+found, not at the end.
 
 | Failure ID | Exposing test(s) | Method | Time testing before found | Time diagnosing | Found by |
 |---|---|---|---|---|---|
