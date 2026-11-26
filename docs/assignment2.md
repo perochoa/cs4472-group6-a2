@@ -642,10 +642,8 @@ found, not at the end.
 | F-14 | TR-14 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
 | F-15 | TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
 | F-16 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
-| BF-01 | BN-05 | `CashValidator#validateWithdrawal` | 60 | 15 | Alexander Perocho |
-| BF-02 | BN-02 | `CashValidator#validateWithdrawal` | 60 | 10 | Alexander Perocho |
-| BF-03 | BN-06, BN-07 | `FormatChecker#checkPinFormat` | 60 | 10 | Alexander Perocho |
-| BF-04 | BN-10, BN-11 | `BankTransfer#perform` | 120 | 20 | Alexander Perocho |
-| BF-05 | BN-11, BN-13 | `BankTransfer#perform` | 120 | 15 | Alexander Perocho |
-
-Bonus rows (`BF-xx`): times are rough, in minutes.
+| F-17 | BN-05 | CashValidator.validateWithdrawal | ~60 min | ~15 min | Alexander Perocho |
+| F-18 | BN-02 | CashValidator.validateWithdrawal | ~60 min | ~10 min | Alexander Perocho |
+| F-19 | BN-06, BN-07 | FormatChecker.checkPinFormat | ~60 min | ~10 min | Alexander Perocho |
+| F-20 | BN-10, BN-11 | BankTransfer.perform | ~120 min | ~20 min | Alexander Perocho |
+| F-21 | BN-11, BN-13 | BankTransfer.perform | ~120 min | ~15 min | Alexander Perocho |
