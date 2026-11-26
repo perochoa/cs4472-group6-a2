@@ -10,8 +10,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,7 +45,6 @@ class BankTransferTest {
 	private static final AccountType FROM = AccountType.Chequing;
 	private static final AccountType TO = AccountType.Savings;
 	private static final double AMOUNT = 100.0;
-	private static final double FEE = 0.5;
 
 	@Mock
 	private DBHandler db;
@@ -71,48 +71,59 @@ class BankTransferTest {
 		return captor.getValue();
 	}
 
-	@Test
-	@DisplayName("BN-10: newToAmount n47 -> n50, from account written with 2000 - 100 - 0.5")
-	void fromAccountWritten() throws Exception {
-		transfer(2000.0, 500.0, FEE);
-		assertEquals(1899.5, balanceWritten(FROM), DELTA);
+	@ParameterizedTest(name = "{0}: {1}")
+	@DisplayName("BankTransfer.perform: DU-paths to the setBalance uses")
+	@CsvSource({
+		// id, DU-path covered, account, from balance, to balance, fee, expected balance written
+		// from loses amount + fee: 2000 - 100 - 0.5
+		"BN-10, 'T1 newToAmount n47 -> n50', Chequing, 2000.0, 500.0, 0.5, 1899.5",
+		// to gains the amount: 500 + 100
+		"BN-11, 'A3 newFromAmount n46 -> n51', Savings, 2000.0, 500.0, 0.5, 600.0",
+	})
+	void accountWritten(String id, String covers, AccountType account, double fromBalance,
+			double toBalance, double fee, double expected) throws Exception {
+		transfer(fromBalance, toBalance, fee);
+		assertEquals(expected, balanceWritten(account), DELTA);
 	}
 
-	@Test
-	@DisplayName("BN-11: newFromAmount n46 -> n51, to account written with 500 + 100")
-	void toAccountWritten() throws Exception {
-		transfer(2000.0, 500.0, FEE);
-		assertEquals(600.0, balanceWritten(TO), DELTA);
-	}
-
-	@Test
-	@DisplayName("BN-12: newFromAmount n46 -> n57 and fees n44 -> n45, returned from balance")
-	void fromBalanceReturned() throws Exception {
-		TransactionResult result = transfer(2000.0, 500.0, FEE);
+	@ParameterizedTest(name = "{0}: {1}")
+	@DisplayName("BankTransfer.perform: DU-paths to the returned balances")
+	@CsvSource({
+		// id, DU-path covered, from balance, to balance, fee, index (0 = from, 1 = to), expected
+		// from loses amount + fee: 2000 - 100 - 0.5
+		"BN-12, 'A4 newFromAmount n46 -> n57, F1 fees n44 -> n45', 2000.0, 500.0, 0.5, 0, 1899.5",
+		// to gains the amount: 500 + 100
+		"BN-13, 'T2 newToAmount n47 -> n58, F2 fees n44 -> n47', 2000.0, 500.0, 0.5, 1, 600.0",
+	})
+	void balanceReturned(String id, String covers, double fromBalance, double toBalance,
+			double fee, int index, double expected) throws Exception {
+		TransactionResult result = transfer(fromBalance, toBalance, fee);
 		assertTrue(result.isSuccessful());
-		assertEquals(1899.5, result.getAccountBalances()[0], DELTA);
+		assertEquals(expected, result.getAccountBalances()[index], DELTA);
 	}
 
-	@Test
-	@DisplayName("BN-13: newToAmount n47 -> n58 and fees n44 -> n47, returned to balance")
-	void toBalanceReturned() throws Exception {
-		TransactionResult result = transfer(2000.0, 500.0, FEE);
-		assertTrue(result.isSuccessful());
-		assertEquals(600.0, result.getAccountBalances()[1], DELTA);
+	@ParameterizedTest(name = "{0}: {1}")
+	@DisplayName("BankTransfer.perform: DU-path to the returned fee")
+	@CsvSource({
+		// id, DU-path covered, from balance, to balance, fee, expected fee returned
+		"BN-14, 'F3 fees n44 -> n59', 2000.0, 500.0, 0.5, 0.5",
+	})
+	void feeReturned(String id, String covers, double fromBalance, double toBalance,
+			double fee, double expected) throws Exception {
+		TransactionResult result = transfer(fromBalance, toBalance, fee);
+		assertEquals(expected, result.getFees(), DELTA);
 	}
 
-	@Test
-	@DisplayName("BN-14: fees n44 -> n59, returned fee")
-	void feeReturned() throws Exception {
-		TransactionResult result = transfer(2000.0, 500.0, FEE);
-		assertEquals(FEE, result.getFees(), DELTA);
-	}
-
-	@Test
-	@DisplayName("BN-15: newFromAmount n46 -> (n48, n61), insufficient funds")
-	void insufficientFunds() throws Exception {
+	@ParameterizedTest(name = "{0}: {1}")
+	@DisplayName("BankTransfer.perform: DU-path to the false p-use of n48")
+	@CsvSource({
+		// id, DU-path covered, from balance, to balance, fee
 		// not a student, $100 or more, from < $1,000, to < $1,000 -> 0.1% of $100 = 0.1
-		TransactionResult result = transfer(50.0, 500.0, 0.1);
+		"BN-15, 'A2 newFromAmount n46 -> (n48, n61)', 50.0, 500.0, 0.1",
+	})
+	void insufficientFunds(String id, String covers, double fromBalance, double toBalance,
+			double fee) throws Exception {
+		TransactionResult result = transfer(fromBalance, toBalance, fee);
 		assertFalse(result.isSuccessful());
 		verify(db, never()).setBalance(eq(USER), eq(FROM), anyDouble());
 		verify(db, never()).setBalance(eq(USER), eq(TO), anyDouble());
