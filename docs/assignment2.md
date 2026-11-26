@@ -223,16 +223,37 @@ PR #10 branch only had the withdrawal tests. The class total for the whole suite
 
 ### 1.2 Deposit: DU-paths for `interestPercentage` (#4)
 
-TODO (#4):
-- **Definitions and use:** every definition of `interestPercentage` (by line) and its use at line 70.
+**Target:** `FeesCalculator#calculateDepositInterest` (lines 33-73)
+- **Definitions and use:**
+
+| Def Line | Use Line |
+|----------|----------|
+| 42       | 70       |
+| 44       | 70       |
+| 48       | 70       |
+| 50       | 70       |
+| 56       | 70       |
+| 58       | 70       |
+| 62       | 70       |
+| 64       | 70       |
 - **DU-path table:**
 
 | DU-path | Def (line) | Use (line) | Path (nodes) | Definition-clear? |
-|---|---|---|---|---|
-| | | | | |
+|---------|------------|------------|--------------|-------------------|
+| DP-01   | 42         | 70         | n42 → n70    | Yes               |
+| DP-02   | 44         | 70         | n44 → n70    | Yes               |
+| DP-03   | 48         | 70         | n48 → n70    | Yes               |
+| DP-04   | 50         | 70         | n50 → n70    | Yes               |
+| DP-05   | 56         | 70         | n56 → n70    | Yes               |
+| DP-06   | 58         | 70         | n58 → n70    | Yes               |
+| DP-07   | 62         | 70         | n62 → n70    | Yes               |
+| DP-08   | 64         | 70         | n64 → n70    | Yes               |
 
-- **Process:** how the paths were found, and how each path's statements are covered.
-- **Assumptions** specific to deposit.
+- **Process:** The 8 `calculateDepositInterest` tests are derived from DU-paths found by tracing the original source code and finding all nodes defining `interesetPercentage`. The only node where `interesetPercentage` is used is `n70` so all DU paths end on `n70`.
+- **Assumptions (Deposit):**
+  - **Definitions.** Declaration of java variable *v* without definition is not a defining node for *v*.
+  - **Oracle.** `expectedFee = amount × interestPercentage`, with the percentage taken from the README A2 "Deposit" clause for that path.
+
 
 ### 1.3 Transfer: basis path testing (#5)
 
