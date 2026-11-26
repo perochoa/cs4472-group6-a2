@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.CsvSource;
  *
  * Expected values come from the README A2 withdrawal figures
  */
-class DepositInterestFeeTest {
+class DepositFeeTest {
     private static final double DELTA = 1e-6;
 
     private final FeesCalculator calculator = new FeesCalculator();
