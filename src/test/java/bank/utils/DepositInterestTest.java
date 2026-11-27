@@ -11,9 +11,9 @@ import org.junit.jupiter.params.provider.CsvSource;
  *
  * DP-01 to DP-08 test all DU-Paths
  *
- * Expected values come from the README A2 withdrawal figures
+ * Expected values come from the README A2 deposit figures
  */
-class DepositFeeTest {
+class DepositInterestTest {
     private static final double DELTA = 1e-6;
 
     private final FeesCalculator calculator = new FeesCalculator();

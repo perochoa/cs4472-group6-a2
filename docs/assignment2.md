@@ -2,11 +2,11 @@
 
 CS4472B, group 6. Target: `bank.utils.FeesCalculator`.
 
-| Operation | Technique | Issue | Owner                         |
-|---|---|---|-------------------------------|
-| Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | Tony Wang (@twang849)         |
-| Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | TODO                          |
-| Transfer | Basis path testing | #5 | Sophia Tong                   |
+| Operation | Technique | Issue | Owner |
+|---|---|---|--|
+| Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | Tony Wang (@twang849) |
+| Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | Blake Wood (@Blake-mb) |
+| Transfer | Basis path testing | #5 | Sophia Tong |
 | Bonus | Any of the three, outside `FeesCalculator` | #6 | Alexander Perocho (@perochoa) |
 
 > **How to use this file.** Fill in only the sections for your issue and replace their `TODO`
@@ -221,7 +221,7 @@ Every line and branch of `calculateWithdrawalFee` runs. The class totals are low
 PR #10 branch only had the withdrawal tests. The class total for the whole suite is under
 [Coverage](#coverage).
 
-### 1.2 Deposit: DU-paths for `interestPercentage` (#4)
+### 1.2 Deposit: DU-paths on `interestPercentage` (#4)
 
 **Target:** `FeesCalculator#calculateDepositInterest` (lines 33-73)
 - **Definitions and use:**
@@ -249,11 +249,23 @@ PR #10 branch only had the withdrawal tests. The class total for the whole suite
 | DP-07   | 62         | 70         | n62 → n70    | Yes               |
 | DP-08   | 64         | 70         | n64 → n70    | Yes               |
 
-- **Process:** The 8 `calculateDepositInterest` tests are derived from DU-paths found by tracing the original source code and finding all nodes defining `interesetPercentage`. The only node where `interesetPercentage` is used is `n70` so all DU paths end on `n70`.
+- **Process:** The 8 `calculateDepositInterest` tests are derived from DU-paths found by tracing the original source code and finding all nodes defining `interestPercentage`. The only node where `interestPercentage` is used is `n70` so all DU paths end on `n70`.
 - **Assumptions (Deposit):**
-  - **Definitions.** Declaration of java variable *v* without definition is not a defining node for *v*.
-  - **Oracle.** `expectedFee = amount × interestPercentage`, with the percentage taken from the README A2 "Deposit" clause for that path.
+    - **Definitions.** Declaration of java variable *v* without definition is not a defining node for *v*.
+    - **Oracle.** `expectedFee = amount × interestPercentage`, with the percentage taken from the README A2 "Deposit" clause for that path.
 
+#### Coverage (from the JaCoCo report on PR #14)
+
+From the `jacoco-report` artifact of the PR #14 CI run, `FeesCalculator` page:
+
+| Method | Instruction coverage | Branch coverage | Lines covered | Cyclomatic complexity |
+|---|---|---|---|---|
+| `calculateDepositInterest` | 100% | 100% | 17 / 17 | 8 |
+
+The 8 DU-Paths run every statement. At class level, `FeesCalculator` is at 28%
+instructions and 25% branches on this run, because the PR #14 branch only had the transfer tests.
+The class total for the whole suite is under [Coverage](#coverage). The coverage comment on the PR shows only the overall project figure (15.89%), because this PR
+doesn't change any main source file.
 
 ### 1.3 Transfer: basis path testing (#5)
 
@@ -618,7 +630,7 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 | DP-05 | n56, n70 | 501.00   | 5001.00          | false     | 5.01              | non-student, amount > 500, accountBalance > 5000 → 1% × amount     | 
 | DP-06 | n58, n70 | 501.00   | 4999.99          | false     | 2.505             | non-student, amount > 500, accountBalance ≤ 5000 → 0.05% × amount  |
 | DP-07 | n62, n70 | 500.00   | 10001.00         | false     | 2.50              | non-student, amount ≤ 500, accountBalance > 10000 → 0.05% × amount |
-| DP-08 | n64, n70 | 500.00   | 10000.00         | false     | 0.00              | non-student, amount ≤ 500, accountBalance ≤ 5000 → No Fee          |
+| DP-08 | n64, n70 | 500.00   | 10000.00         | false     | 0.00              | non-student, amount ≤ 500, accountBalance ≤ 10000 → No Fee         |
 
 ### 2.3 Transfer (#5)
 
@@ -671,57 +683,57 @@ Must match the JUnit report on the graded PR's CI run.
 In the CI JUnit report, the withdrawal cases appear as `WithdrawalFeeTest.withdrawalFee(...)[n]`,
 where `[n]` is WD-0n (`[1]` = WD-01 through `[6]` = WD-06).
 
-| ID      | Test class                                         | Result (pass/fail) |
-|---------|----------------------------------------------------|--------------------|
-| WD-01   | `bank.utils.WithdrawalFeeTest`                     | pass               |
-| WD-02   | `bank.utils.WithdrawalFeeTest`                     | pass               |
-| WD-03   | `bank.utils.WithdrawalFeeTest`                     | pass               |
-| WD-04   | `bank.utils.WithdrawalFeeTest`                     | pass               |
-| WD-05   | `bank.utils.WithdrawalFeeTest`                     | pass               |
-| WD-06   | `bank.utils.WithdrawalFeeTest`                     | pass               |
-| TR-01   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-02   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-03   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-04   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-05   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-06   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-07   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-08   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-09   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-10   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-11   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-12   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-13   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-14   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-15   | `bank.utils.TransferFeeTest`                       | fail               |
-| TR-16   | `bank.utils.TransferFeeTest`                       | fail               |
-| BN-01   | `atm.utils.CashValidatorTest`                      | pass               |
-| BN-02   | `atm.utils.CashValidatorTest`                      | fail               |
-| BN-03   | `atm.utils.CashValidatorTest`                      | pass               |
-| BN-04   | `atm.utils.CashValidatorTest`                      | pass               |
-| BN-05   | `atm.utils.CashValidatorTest`                      | fail               |
-| BN-06   | `atm.utils.FormatCheckerTest`                      | fail               |
-| BN-07   | `atm.utils.FormatCheckerTest`                      | fail               |
-| BN-08   | `atm.utils.FormatCheckerTest`                      | pass               |
-| BN-09   | `atm.utils.FormatCheckerTest`                      | pass               |
-| BN-16   | `atm.utils.FormatCheckerTest`                      | pass               |
-| BN-10   | `bank.transactions.BankTransferTest`               | fail               |
-| BN-11   | `bank.transactions.BankTransferTest`               | fail               |
-| BN-12   | `bank.transactions.BankTransferTest`               | pass               |
-| BN-13   | `bank.transactions.BankTransferTest`               | fail               |
-| BN-14   | `bank.transactions.BankTransferTest`               | pass               |
-| BN-15   | `bank.transactions.BankTransferTest`               | pass               |
-| starter | `bank.utils.FeesCalculatorTest` (`withdrawalTest`) | pass               |
-| starter | `atm.ATMTest` (`checkCorrectPINTest`)              | pass               |
-| starter | `atm.ATMTest` (`checkIncorrectPINTest`)            | pass               |
-| DP-01   | `bank.utils.DepositeFeeTest`                       | pass               |
-| DP-02   | `bank.utils.DepositeFeeTest`                       | pass               |
-| DP-03   | `bank.utils.DepositeFeeTest`                       | pass               |
-| DP-04   | `bank.utils.DepositeFeeTest`                       | fail               |
-| DP-05   | `bank.utils.DepositeFeeTest`                       | pass               |
-| DP-06   | `bank.utils.DepositeFeeTest`                       | pass               |
-| DP-07   | `bank.utils.DepositeFeeTest`                       | pass               |
-| DP-08   | `bank.utils.DepositeFeeTest`                       | pass               |
+| ID | Test class | Result (pass/fail) |
+|---|---|---|
+| WD-01 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-02 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-03 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-04 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-05 | `bank.utils.WithdrawalFeeTest` | pass |
+| WD-06 | `bank.utils.WithdrawalFeeTest` | pass |
+| TR-01 | `bank.utils.TransferFeeTest` | fail |
+| TR-02 | `bank.utils.TransferFeeTest` | fail |
+| TR-03 | `bank.utils.TransferFeeTest` | fail |
+| TR-04 | `bank.utils.TransferFeeTest` | fail |
+| TR-05 | `bank.utils.TransferFeeTest` | fail |
+| TR-06 | `bank.utils.TransferFeeTest` | fail |
+| TR-07 | `bank.utils.TransferFeeTest` | fail |
+| TR-08 | `bank.utils.TransferFeeTest` | fail |
+| TR-09 | `bank.utils.TransferFeeTest` | fail |
+| TR-10 | `bank.utils.TransferFeeTest` | fail |
+| TR-11 | `bank.utils.TransferFeeTest` | fail |
+| TR-12 | `bank.utils.TransferFeeTest` | fail |
+| TR-13 | `bank.utils.TransferFeeTest` | fail |
+| TR-14 | `bank.utils.TransferFeeTest` | fail |
+| TR-15 | `bank.utils.TransferFeeTest` | fail |
+| TR-16 | `bank.utils.TransferFeeTest` | fail |
+| BN-01 | `atm.utils.CashValidatorTest` | pass |
+| BN-02 | `atm.utils.CashValidatorTest` | fail |
+| BN-03 | `atm.utils.CashValidatorTest` | pass |
+| BN-04 | `atm.utils.CashValidatorTest` | pass |
+| BN-05 | `atm.utils.CashValidatorTest` | fail |
+| BN-06 | `atm.utils.FormatCheckerTest` | fail |
+| BN-07 | `atm.utils.FormatCheckerTest` | fail |
+| BN-08 | `atm.utils.FormatCheckerTest` | pass |
+| BN-09 | `atm.utils.FormatCheckerTest` | pass |
+| BN-16 | `atm.utils.FormatCheckerTest` | pass |
+| BN-10 | `bank.transactions.BankTransferTest` | fail |
+| BN-11 | `bank.transactions.BankTransferTest` | fail |
+| BN-12 | `bank.transactions.BankTransferTest` | pass |
+| BN-13 | `bank.transactions.BankTransferTest` | fail |
+| BN-14 | `bank.transactions.BankTransferTest` | pass |
+| BN-15 | `bank.transactions.BankTransferTest` | pass |
+| starter | `bank.utils.FeesCalculatorTest` (`withdrawalTest`) | pass |
+| starter | `atm.ATMTest` (`checkCorrectPINTest`) | pass |
+| starter | `atm.ATMTest` (`checkIncorrectPINTest`) | pass |
+| DP-01   | `bank.utils.DepositInterestTest` | pass |
+| DP-02   | `bank.utils.DepositInterestTest` | pass |
+| DP-03   | `bank.utils.DepositInterestTest` | pass |
+| DP-04   | `bank.utils.DepositInterestTest` | fail |
+| DP-05   | `bank.utils.DepositInterestTest` | pass |
+| DP-06   | `bank.utils.DepositInterestTest` | pass |
+| DP-07   | `bank.utils.DepositInterestTest` | pass |
+| DP-08   | `bank.utils.DepositInterestTest` | pass |
 
 The rows marked "starter" are the tests that came with the starter code. They still run, so they
 show up in the CI JUnit report, but they weren't built from a slice, DU-path or basis path, so
@@ -758,30 +770,30 @@ coverage.
 One row per faulty line or condition (see [Faults and failure log](#faults-and-failure-log)).
 Only group tests that reach the same faulty line. Same columns as the PR template.
 
-| Failing test(s) | Suspected fault (file, method, line)                                                       | One-line justification                                                                                                                                                                                               |
-|-----------------|--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| TR-01           | `FeesCalculator.java`, `calculateTransferFee`, line 83 (`feePercentage = 0.01`)            | P1 is the only path through line 83 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001.                                                                                        |
-| TR-02           | `FeesCalculator.java`, `calculateTransferFee`, line 85 (`feePercentage = 0.005`)           | P2 is the only path through line 85 and returns 0.25 instead of 0.025 (10×), so the constant is 0.005 where the spec says 0.0005.                                                                                    |
-| TR-03           | `FeesCalculator.java`, `calculateTransferFee`, line 89 (`feePercentage = 0.05`)            | P3 is the only path through line 89 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005.                                                                                        |
-| TR-04           | `FeesCalculator.java`, `calculateTransferFee`, line 91 (`feePercentage = 0.025`)           | P4 is the only path through line 91 and returns 1.25 instead of 0.125 (10×), so the constant is 0.025 where the spec says 0.0025.                                                                                    |
-| TR-05           | `FeesCalculator.java`, `calculateTransferFee`, line 97 (`feePercentage = 0.005`)           | P5 is the only path through line 97 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005.                                                                                       |
-| TR-06           | `FeesCalculator.java`, `calculateTransferFee`, line 99 (`feePercentage = 0.0025`)          | P6 is the only path through line 99 and returns 0.5 instead of 0.05 (10×), so the constant is 0.0025 where the spec says 0.00025.                                                                                    |
-| TR-07           | `FeesCalculator.java`, `calculateTransferFee`, line 103 (`feePercentage = 0.025`)          | P7 is the only path through line 103 and returns 5.0 instead of 0.5 (10×), so the constant is 0.025 where the spec says 0.0025.                                                                                      |
-| TR-08           | `FeesCalculator.java`, `calculateTransferFee`, line 105 (`feePercentage = 0.0125`)         | P8 is the only path through line 105 and returns 2.5 instead of 0.25 (10×), so the constant is 0.0125 where the spec says 0.00125.                                                                                   |
-| TR-09           | `FeesCalculator.java`, `calculateTransferFee`, line 113 (`feePercentage = 0.02`)           | P9 is the only path through line 113 and returns 1.0 instead of 0.1 (10×), so the constant is 0.02 where the spec says 0.002.                                                                                        |
-| TR-10           | `FeesCalculator.java`, `calculateTransferFee`, line 115 (`feePercentage = 0.01`)           | P10 is the only path through line 115 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001.                                                                                      |
-| TR-11           | `FeesCalculator.java`, `calculateTransferFee`, line 119 (`feePercentage = 0.1`)            | P11 is the only path through line 119 and returns 5.0 instead of 0.5 (10×), so the constant is 0.1 where the spec says 0.01.                                                                                         |
-| TR-12           | `FeesCalculator.java`, `calculateTransferFee`, line 121 (`feePercentage = 0.05`)           | P12 is the only path through line 121 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005.                                                                                      |
-| TR-13           | `FeesCalculator.java`, `calculateTransferFee`, line 127 (`feePercentage = 0.01`)           | P13 is the only path through line 127 and returns 2.0 instead of 0.2 (10×), so the constant is 0.01 where the spec says 0.001.                                                                                       |
-| TR-14           | `FeesCalculator.java`, `calculateTransferFee`, line 129 (`feePercentage = 0.005`)          | P14 is the only path through line 129 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005.                                                                                     |
-| TR-15           | `FeesCalculator.java`, `calculateTransferFee`, line 133 (`feePercentage = 0.05`)           | P15 is the only path through line 133 and returns 10.0 instead of 1.0 (10×), so the constant is 0.05 where the spec says 0.005.                                                                                      |
-| TR-16           | `FeesCalculator.java`, `calculateTransferFee`, line 135 (`feePercentage = 0.055`)          | P16 is the only path through line 135 and returns 11.0 instead of 0.5 (22×), which doesn't fit the 10× pattern, so line 135 has its own wrong constant (0.055 where the spec says 0.0025).                           |
-| BN-05           | `CashValidator.java`, `validateWithdrawal`, line 25                                        | `newAmount % 20` only tries $20 bills on what's left after line 23 took as many $50 bills as it could, and never retries with one $50 fewer, so $80 (30 left, 30 % 20 = 10) is rejected even though 4 × $20 pays it. |
-| BN-02           | `CashValidator.java`, `validateWithdrawal`, line 24                                        | There's no check that `amount > 0`, and `0 % 50 == 0` takes the "valid" path B1, so $0 is accepted.                                                                                                                  |
-| BN-06, BN-07    | `FormatChecker.java`, `checkPinFormat`, line 33                                            | `pin.length == 4` checks for 4 characters instead of 5, so a 4-digit PIN is accepted and a 5-digit PIN is rejected.                                                                                                  |
-| BN-10, BN-11    | `BankTransfer.java`, `perform`, lines 50–51                                                | The two `setBalance` calls are swapped: the from account gets `newToAmount` (599.5) and the to account gets `newFromAmount` (1,899.5).                                                                               |
-| BN-11, BN-13    | `BankTransfer.java`, `perform`, line 47                                                    | `newToAmount = toBalance + amount - fees` takes the fee off the receiving account too, so it gets 599.5 instead of 600 and the fee is charged twice.                                                                 |
-| DP-04           | `FeesCalculator.java`, `calculateDepositeInterest`, line 50 (`interestPercentage = 0.002`) | `interestPercentage` gets defined as 0.02% where the spec says it there should be no fee.                                                                                                                            |
+| Failing test(s) | Suspected fault (file, method, line) | One-line justification |
+|---|---|---|
+| TR-01 | `FeesCalculator.java`, `calculateTransferFee`, line 83 (`feePercentage = 0.01`) | P1 is the only path through line 83 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-02 | `FeesCalculator.java`, `calculateTransferFee`, line 85 (`feePercentage = 0.005`) | P2 is the only path through line 85 and returns 0.25 instead of 0.025 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-03 | `FeesCalculator.java`, `calculateTransferFee`, line 89 (`feePercentage = 0.05`) | P3 is the only path through line 89 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-04 | `FeesCalculator.java`, `calculateTransferFee`, line 91 (`feePercentage = 0.025`) | P4 is the only path through line 91 and returns 1.25 instead of 0.125 (10×), so the constant is 0.025 where the spec says 0.0025. |
+| TR-05 | `FeesCalculator.java`, `calculateTransferFee`, line 97 (`feePercentage = 0.005`) | P5 is the only path through line 97 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-06 | `FeesCalculator.java`, `calculateTransferFee`, line 99 (`feePercentage = 0.0025`) | P6 is the only path through line 99 and returns 0.5 instead of 0.05 (10×), so the constant is 0.0025 where the spec says 0.00025. |
+| TR-07 | `FeesCalculator.java`, `calculateTransferFee`, line 103 (`feePercentage = 0.025`) | P7 is the only path through line 103 and returns 5.0 instead of 0.5 (10×), so the constant is 0.025 where the spec says 0.0025. |
+| TR-08 | `FeesCalculator.java`, `calculateTransferFee`, line 105 (`feePercentage = 0.0125`) | P8 is the only path through line 105 and returns 2.5 instead of 0.25 (10×), so the constant is 0.0125 where the spec says 0.00125. |
+| TR-09 | `FeesCalculator.java`, `calculateTransferFee`, line 113 (`feePercentage = 0.02`) | P9 is the only path through line 113 and returns 1.0 instead of 0.1 (10×), so the constant is 0.02 where the spec says 0.002. |
+| TR-10 | `FeesCalculator.java`, `calculateTransferFee`, line 115 (`feePercentage = 0.01`) | P10 is the only path through line 115 and returns 0.5 instead of 0.05 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-11 | `FeesCalculator.java`, `calculateTransferFee`, line 119 (`feePercentage = 0.1`) | P11 is the only path through line 119 and returns 5.0 instead of 0.5 (10×), so the constant is 0.1 where the spec says 0.01. |
+| TR-12 | `FeesCalculator.java`, `calculateTransferFee`, line 121 (`feePercentage = 0.05`) | P12 is the only path through line 121 and returns 2.5 instead of 0.25 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-13 | `FeesCalculator.java`, `calculateTransferFee`, line 127 (`feePercentage = 0.01`) | P13 is the only path through line 127 and returns 2.0 instead of 0.2 (10×), so the constant is 0.01 where the spec says 0.001. |
+| TR-14 | `FeesCalculator.java`, `calculateTransferFee`, line 129 (`feePercentage = 0.005`) | P14 is the only path through line 129 and returns 1.0 instead of 0.1 (10×), so the constant is 0.005 where the spec says 0.0005. |
+| TR-15 | `FeesCalculator.java`, `calculateTransferFee`, line 133 (`feePercentage = 0.05`) | P15 is the only path through line 133 and returns 10.0 instead of 1.0 (10×), so the constant is 0.05 where the spec says 0.005. |
+| TR-16 | `FeesCalculator.java`, `calculateTransferFee`, line 135 (`feePercentage = 0.055`) | P16 is the only path through line 135 and returns 11.0 instead of 0.5 (22×), which doesn't fit the 10× pattern, so line 135 has its own wrong constant (0.055 where the spec says 0.0025). |
+| BN-05 | `CashValidator.java`, `validateWithdrawal`, line 25 | `newAmount % 20` only tries $20 bills on what's left after line 23 took as many $50 bills as it could, and never retries with one $50 fewer, so $80 (30 left, 30 % 20 = 10) is rejected even though 4 × $20 pays it. |
+| BN-02 | `CashValidator.java`, `validateWithdrawal`, line 24 | There's no check that `amount > 0`, and `0 % 50 == 0` takes the "valid" path B1, so $0 is accepted. |
+| BN-06, BN-07 | `FormatChecker.java`, `checkPinFormat`, line 33 | `pin.length == 4` checks for 4 characters instead of 5, so a 4-digit PIN is accepted and a 5-digit PIN is rejected. |
+| BN-10, BN-11 | `BankTransfer.java`, `perform`, lines 50–51 | The two `setBalance` calls are swapped: the from account gets `newToAmount` (599.5) and the to account gets `newFromAmount` (1,899.5). |
+| BN-11, BN-13 | `BankTransfer.java`, `perform`, line 47 | `newToAmount = toBalance + amount - fees` takes the fee off the receiving account too, so it gets 599.5 instead of 600 and the fee is charged twice. |
+| DP-04 | `FeesCalculator.java`, `calculateDepositInterest`, line 50 (`interestPercentage = 0.002`) | `interestPercentage` gets defined as 0.02% where the spec says it there should be no fee. |
 
 BN-11 is in both `BankTransfer` rows. It checks the balance written to the to account, which is
 wrong because of the swap (it gets 1,899.5) and would still be wrong with only the swap fixed (it
@@ -792,27 +804,27 @@ would get 599.5, not 600). BN-10 is the test that isolates the swap, and BN-13 i
 Kept for Assignment 3. One failure ID per fault-localization row. Add a row as soon as a failure is
 found, not at the end.
 
-| Failure ID | Exposing test(s)  | Method                           | Time testing before found | Time diagnosing | Found by          |
-|------------|-------------------|----------------------------------|---------------------------|-----------------|-------------------|
-| F-01       | TR-01             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-02       | TR-02             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-03       | TR-03             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-04       | TR-04             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-05       | TR-05             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-06       | TR-06             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-07       | TR-07             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-08       | TR-08             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-09       | TR-09             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-10       | TR-10             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-11       | TR-11             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-12       | TR-12             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-13       | TR-13             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-14       | TR-14             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-15       | TR-15             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-16       | TR-16             | calculateTransferFee             | ~45 min                   | ~10 min         | Sophia Tong       |
-| F-17       | BN-05             | CashValidator.validateWithdrawal | ~60 min                   | ~15 min         | Alexander Perocho |
-| F-18       | BN-02             | CashValidator.validateWithdrawal | ~60 min                   | ~10 min         | Alexander Perocho |
-| F-19       | BN-06, BN-07      | FormatChecker.checkPinFormat     | ~60 min                   | ~10 min         | Alexander Perocho |
-| F-20       | BN-10, BN-11      | BankTransfer.perform             | ~120 min                  | ~20 min         | Alexander Perocho |
-| F-21       | BN-11, BN-13      | BankTransfer.perform             | ~120 min                  | ~15 min         | Alexander Perocho |
-| F-22       | DP-04             | calculateDepositInterest         | ~120 min                  | ~10 min         | Blake Wood        |
+| Failure ID | Exposing test(s) | Method | Time testing before found | Time diagnosing | Found by |
+|---|---|---|---|---|---|
+| F-01 | TR-01 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-02 | TR-02 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-03 | TR-03 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-04 | TR-04 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-05 | TR-05 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-06 | TR-06 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-07 | TR-07 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-08 | TR-08 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-09 | TR-09 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-10 | TR-10 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-11 | TR-11 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-12 | TR-12 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-13 | TR-13 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-14 | TR-14 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-15 | TR-15 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-16 | TR-16 | calculateTransferFee | ~45 min | ~10 min | Sophia Tong |
+| F-17 | BN-05 | CashValidator.validateWithdrawal | ~60 min | ~15 min | Alexander Perocho |
+| F-18 | BN-02 | CashValidator.validateWithdrawal | ~60 min | ~10 min | Alexander Perocho |
+| F-19 | BN-06, BN-07 | FormatChecker.checkPinFormat | ~60 min | ~10 min | Alexander Perocho |
+| F-20 | BN-10, BN-11 | BankTransfer.perform | ~120 min | ~20 min | Alexander Perocho |
+| F-21 | BN-11, BN-13 | BankTransfer.perform | ~120 min | ~15 min | Alexander Perocho |
+| F-22 | DP-04 | calculateDepositInterest | ~120 min | ~10 min| Blake Wood |
