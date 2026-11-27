@@ -251,10 +251,28 @@ PR #10 branch only had the withdrawal tests. The class total for the whole suite
 
 - **Process:** The 8 `calculateDepositInterest` tests are derived from DU-paths found by tracing the original source code and finding all nodes defining `interestPercentage`. The only node where `interestPercentage` is used is `n70` so all DU paths end on `n70`.
 - **Assumptions (Deposit):**
-    - **Definitions.** Declaration of java variable *v* without definition is not a defining node for *v*.
-    - **Oracle.** `expectedFee = amount × interestPercentage`, with the percentage taken from the README A2 "Deposit" clause for that path.
+  1. **Definitions.** Declaration of java variable *v* without definition is not a defining node for *v*.
+  2. **Oracle.** `expectedFee = amount × interestPercentage`, with the percentage taken from the README A2 "Deposit" clause for that path.
+  3. **Tolerance.** `DELTA = 1e-6` (shared assumption 1).
+  4. **No Rounding.** (Shared assumption 2).
+  5. **Node Numbering.** Nodes are source lines. Closing braces of the `if`/`else` blocks are join
+     points with no statement, so they don't get nodes of their own.
 
-#### Coverage (from the JaCoCo report on PR #14)
+#### Coverage
+
+| ID | Full Path | Nodes Covered (Omitting previously covered) |
+|---|---|---|
+|DP-01| n33 → n35 → n37 → n39 → n41 → n42 → n70 → n72 | n33, n35, n37, n39, n41, n42, n70, n72 |
+|DP-02| n33 → n35 → n37 → n39 → n41 → n44 → n70 → n72 | n44 |
+|DP-03| n33 → n35 → n37 → n39 → n47 → n48 → n70 → n72 | n47, n48 |
+|DP-04| n33 → n35 → n37 → n39 → n47 → n50 → n70 → n72 | n50 |
+|DP-05| n33 → n35 → n37 → n54 → n55 → n56 → n70 → n72 | n54, n55, n56 |
+|DP-06| n33 → n35 → n37 → n54 → n55 → n58 → n70 → n72 | n58 |
+|DP-07| n33 → n35 → n37 → n54 → n61 → n62 → n70 → n72 | n61, n62 |
+|DP-08| n33 → n35 → n37 → n54 → n61 → n64 → n70 → n72 | n64 |
+Total statements in calculateDepositInterest: N.
+
+Union of covered nodes: n33, n35, n37, n39, n41, n42, n44, n47, n48, n50, n54, n55, n56, n58, n61, n62, n64, n70, n72 = N/N (100%).
 
 From the `jacoco-report` artifact of the PR #14 CI run, `FeesCalculator` page:
 
