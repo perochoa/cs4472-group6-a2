@@ -646,8 +646,8 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 | DP-03 | n48, n70 | 100.00   | 5001.00          | true      | 0.50              | student, amount ≤ 100, accountBalance > 5000 → 0.5% × amount       |
 | DP-04 | n50, n70 | 100.00   | 4999.99          | true      | 0.00              | student, amount ≤ 100, accountBalance ≤ 5000 → No Fee              |
 | DP-05 | n56, n70 | 501.00   | 5001.00          | false     | 5.01              | non-student, amount > 500, accountBalance > 5000 → 1% × amount     | 
-| DP-06 | n58, n70 | 501.00   | 4999.99          | false     | 2.505             | non-student, amount > 500, accountBalance ≤ 5000 → 0.05% × amount  |
-| DP-07 | n62, n70 | 500.00   | 10001.00         | false     | 2.50              | non-student, amount ≤ 500, accountBalance > 10000 → 0.05% × amount |
+| DP-06 | n58, n70 | 501.00   | 4999.99          | false     | 2.505             | non-student, amount > 500, accountBalance ≤ 5000 → 0.5% × amount  |
+| DP-07 | n62, n70 | 500.00   | 10001.00         | false     | 2.50              | non-student, amount ≤ 500, accountBalance > 10000 → 0.5% × amount |
 | DP-08 | n64, n70 | 500.00   | 10000.00         | false     | 0.00              | non-student, amount ≤ 500, accountBalance ≤ 10000 → No Fee         |
 
 ### 2.3 Transfer (#5)
