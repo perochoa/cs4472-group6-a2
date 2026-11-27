@@ -3,9 +3,9 @@
 CS4472B, group 6. Target: `bank.utils.FeesCalculator`.
 
 | Operation | Technique | Issue | Owner |
-|---|---|---|---|
+|---|---|---|--|
 | Withdrawal | Slice on `FinalUse(fee)` + statement coverage | #3 | Tony Wang (@twang849) |
-| Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | TODO |
+| Deposit | DU-paths for `interestPercentage` + statement coverage | #4 | Blake Wood (@Blake-mb) |
 | Transfer | Basis path testing | #5 | Sophia Tong |
 | Bonus | Any of the three, outside `FeesCalculator` | #6 | Alexander Perocho (@perochoa) |
 
@@ -221,18 +221,69 @@ Every line and branch of `calculateWithdrawalFee` runs. The class totals are low
 PR #10 branch only had the withdrawal tests. The class total for the whole suite is under
 [Coverage](#coverage).
 
-### 1.2 Deposit: DU-paths for `interestPercentage` (#4)
+### 1.2 Deposit: DU-paths on `interestPercentage` (#4)
 
-TODO (#4):
-- **Definitions and use:** every definition of `interestPercentage` (by line) and its use at line 70.
+**Target:** `FeesCalculator#calculateDepositInterest` (lines 33-73)
+- **Definitions and use:**
+
+| Def Line | Use Line |
+|----------|----------|
+| 42       | 70       |
+| 44       | 70       |
+| 48       | 70       |
+| 50       | 70       |
+| 56       | 70       |
+| 58       | 70       |
+| 62       | 70       |
+| 64       | 70       |
 - **DU-path table:**
 
 | DU-path | Def (line) | Use (line) | Path (nodes) | Definition-clear? |
-|---|---|---|---|---|
-| | | | | |
+|---------|------------|------------|--------------|-------------------|
+| DP-01   | 42         | 70         | n42 → n70    | Yes               |
+| DP-02   | 44         | 70         | n44 → n70    | Yes               |
+| DP-03   | 48         | 70         | n48 → n70    | Yes               |
+| DP-04   | 50         | 70         | n50 → n70    | Yes               |
+| DP-05   | 56         | 70         | n56 → n70    | Yes               |
+| DP-06   | 58         | 70         | n58 → n70    | Yes               |
+| DP-07   | 62         | 70         | n62 → n70    | Yes               |
+| DP-08   | 64         | 70         | n64 → n70    | Yes               |
 
-- **Process:** how the paths were found, and how each path's statements are covered.
-- **Assumptions** specific to deposit.
+- **Process:** The 8 `calculateDepositInterest` tests are derived from DU-paths found by tracing the original source code and finding all nodes defining `interestPercentage`. The only node where `interestPercentage` is used is `n70` so all DU paths end on `n70`.
+- **Assumptions (Deposit):**
+  1. **Definitions.** Declaration of java variable *v* without definition is not a defining node for *v*.
+  2. **Oracle.** `expectedFee = amount × interestPercentage`, with the percentage taken from the README A2 "Deposit" clause for that path.
+  3. **Tolerance.** `DELTA = 1e-6` (shared assumption 1).
+  4. **No Rounding.** (Shared assumption 2).
+  5. **Node Numbering.** Nodes are source lines. Closing braces of the `if`/`else` blocks are join
+     points with no statement, so they don't get nodes of their own.
+
+#### Coverage
+
+| ID | Full Path | Nodes Covered (Omitting previously covered) |
+|---|---|---|
+|DP-01| n33 → n35 → n37 → n39 → n41 → n42 → n70 → n72 | n33, n35, n37, n39, n41, n42, n70, n72 |
+|DP-02| n33 → n35 → n37 → n39 → n41 → n44 → n70 → n72 | n44 |
+|DP-03| n33 → n35 → n37 → n39 → n47 → n48 → n70 → n72 | n47, n48 |
+|DP-04| n33 → n35 → n37 → n39 → n47 → n50 → n70 → n72 | n50 |
+|DP-05| n33 → n35 → n37 → n54 → n55 → n56 → n70 → n72 | n54, n55, n56 |
+|DP-06| n33 → n35 → n37 → n54 → n55 → n58 → n70 → n72 | n58 |
+|DP-07| n33 → n35 → n37 → n54 → n61 → n62 → n70 → n72 | n61, n62 |
+|DP-08| n33 → n35 → n37 → n54 → n61 → n64 → n70 → n72 | n64 |
+Total statements in calculateDepositInterest: N.
+
+Union of covered nodes: n33, n35, n37, n39, n41, n42, n44, n47, n48, n50, n54, n55, n56, n58, n61, n62, n64, n70, n72 = N/N (100%).
+
+From the `jacoco-report` artifact of the PR #14 CI run, `FeesCalculator` page:
+
+| Method | Instruction coverage | Branch coverage | Lines covered | Cyclomatic complexity |
+|---|---|---|---|---|
+| `calculateDepositInterest` | 100% | 100% | 17 / 17 | 8 |
+
+The 8 DU-Paths run every statement. At class level, `FeesCalculator` is at 28%
+instructions and 25% branches on this run, because the PR #14 branch only had the transfer tests.
+The class total for the whole suite is under [Coverage](#coverage). The coverage comment on the PR shows only the overall project figure (15.89%), because this PR
+doesn't change any main source file.
 
 ### 1.3 Transfer: basis path testing (#5)
 
@@ -588,9 +639,16 @@ path the case was built for. "Spec clause" is the README bullet the expected val
 
 ### 2.2 Deposit (#4)
 
-| ID | Covers | `amount` | `accountBalance` | `student` | Expected interest | Spec clause |
-|---|---|---|---|---|---|---|
-| DP-01 | | | | | | |
+| ID    | Covers   | `amount` | `accountBalance` | `student` | Expected interest | Spec clause                                                        |
+|-------|----------|----------|------------------|-----------|-------------------|--------------------------------------------------------------------|
+| DP-01 | n42, n70 | 101.00   | 1001.00          | true      | 1.01              | student, amount > 100, accountBalance > 1000 → 1% × amount         |
+| DP-02 | n44, n70 | 101.00   | 999.99           | true      | 0.505             | student, amount > 100, accountBalance ≤ 1000 → 0.5% × amount       |
+| DP-03 | n48, n70 | 100.00   | 5001.00          | true      | 0.50              | student, amount ≤ 100, accountBalance > 5000 → 0.5% × amount       |
+| DP-04 | n50, n70 | 100.00   | 4999.99          | true      | 0.00              | student, amount ≤ 100, accountBalance ≤ 5000 → No Fee              |
+| DP-05 | n56, n70 | 501.00   | 5001.00          | false     | 5.01              | non-student, amount > 500, accountBalance > 5000 → 1% × amount     | 
+| DP-06 | n58, n70 | 501.00   | 4999.99          | false     | 2.505             | non-student, amount > 500, accountBalance ≤ 5000 → 0.5% × amount  |
+| DP-07 | n62, n70 | 500.00   | 10001.00         | false     | 2.50              | non-student, amount ≤ 500, accountBalance > 10000 → 0.5% × amount |
+| DP-08 | n64, n70 | 500.00   | 10000.00         | false     | 0.00              | non-student, amount ≤ 500, accountBalance ≤ 10000 → No Fee         |
 
 ### 2.3 Transfer (#5)
 
@@ -686,6 +744,14 @@ where `[n]` is WD-0n (`[1]` = WD-01 through `[6]` = WD-06).
 | starter | `bank.utils.FeesCalculatorTest` (`withdrawalTest`) | pass |
 | starter | `atm.ATMTest` (`checkCorrectPINTest`) | pass |
 | starter | `atm.ATMTest` (`checkIncorrectPINTest`) | pass |
+| DP-01   | `bank.utils.DepositInterestTest` | pass |
+| DP-02   | `bank.utils.DepositInterestTest` | pass |
+| DP-03   | `bank.utils.DepositInterestTest` | pass |
+| DP-04   | `bank.utils.DepositInterestTest` | fail |
+| DP-05   | `bank.utils.DepositInterestTest` | pass |
+| DP-06   | `bank.utils.DepositInterestTest` | pass |
+| DP-07   | `bank.utils.DepositInterestTest` | pass |
+| DP-08   | `bank.utils.DepositInterestTest` | pass |
 
 The rows marked "starter" are the tests that came with the starter code. They still run, so they
 show up in the CI JUnit report, but they weren't built from a slice, DU-path or basis path, so
@@ -745,6 +811,7 @@ Only group tests that reach the same faulty line. Same columns as the PR templat
 | BN-06, BN-07 | `FormatChecker.java`, `checkPinFormat`, line 33 | `pin.length == 4` checks for 4 characters instead of 5, so a 4-digit PIN is accepted and a 5-digit PIN is rejected. |
 | BN-10, BN-11 | `BankTransfer.java`, `perform`, lines 50–51 | The two `setBalance` calls are swapped: the from account gets `newToAmount` (599.5) and the to account gets `newFromAmount` (1,899.5). |
 | BN-11, BN-13 | `BankTransfer.java`, `perform`, line 47 | `newToAmount = toBalance + amount - fees` takes the fee off the receiving account too, so it gets 599.5 instead of 600 and the fee is charged twice. |
+| DP-04 | `FeesCalculator.java`, `calculateDepositInterest`, line 50 (`interestPercentage = 0.002`) | `interestPercentage` gets defined as 0.2% where the spec says it there should be no fee. |
 
 BN-11 is in both `BankTransfer` rows. It checks the balance written to the to account, which is
 wrong because of the swap (it gets 1,899.5) and would still be wrong with only the swap fixed (it
@@ -778,3 +845,4 @@ found, not at the end.
 | F-19 | BN-06, BN-07 | FormatChecker.checkPinFormat | ~60 min | ~10 min | Alexander Perocho |
 | F-20 | BN-10, BN-11 | BankTransfer.perform | ~120 min | ~20 min | Alexander Perocho |
 | F-21 | BN-11, BN-13 | BankTransfer.perform | ~120 min | ~15 min | Alexander Perocho |
+| F-22 | DP-04 | calculateDepositInterest | ~120 min | ~10 min| Blake Wood |
